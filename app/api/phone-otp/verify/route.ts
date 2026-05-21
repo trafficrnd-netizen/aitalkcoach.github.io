@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json',
           Authorization: `Octomo ${apiKey}`,
         },
-        body: JSON.stringify({ mobileNum: normalized, text: storedCode }),
+        body: JSON.stringify({ mobileNum: normalized, text: String(storedCode) }),
       },
     )
   } catch (err) {
