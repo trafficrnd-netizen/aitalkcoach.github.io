@@ -10,7 +10,7 @@ type SupplierProfileInsert = Database['public']['Tables']['supplier_profiles']['
 
 async function checkPhoneVerified(phone: string): Promise<boolean> {
   const flag = await redis.get<string>(`otp:verified:${phone}`)
-  return flag === '1'
+  return flag === 'ok'
 }
 
 export async function login(formData: FormData) {

@@ -74,7 +74,8 @@ export async function POST(req: NextRequest) {
 
   // 인증 완료 — OTP 삭제, verified 플래그 30분 유지
   await redis.del(`otp:${normalized}`)
-  await redis.set(`otp:verified:${normalized}`, '1', { ex: VERIFIED_TTL })
+  // '1' 은 JSON.parse 시 숫자 1로 역직렬화되므로 문자열로 확실히 구분되는 값 사용
+  await redis.set(`otp:verified:${normalized}`, 'ok', { ex: VERIFIED_TTL })
 
   return NextResponse.json({ ok: true })
 }
