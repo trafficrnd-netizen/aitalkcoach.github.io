@@ -27,14 +27,9 @@ export async function login(formData: FormData) {
 
   if (!data.user) return { error: '로그인에 실패했습니다.' }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: supplierProfile } = await (supabase as any)
-    .from('supplier_profiles')
-    .select('user_id')
-    .eq('user_id', data.user.id)
-    .maybeSingle()
-
-  return { destination: supplierProfile ? '/supplier/board' : '/researcher/board' }
+  // user_metadata에 user_type이 이미 저장되어 있으므로 DB 쿼리 불필요
+  const userType = data.user.user_metadata?.user_type
+  return { destination: userType === 'supplier' ? '/supplier/board' : '/researcher/board' }
 }
 
 export async function signupResearcher(formData: FormData) {
