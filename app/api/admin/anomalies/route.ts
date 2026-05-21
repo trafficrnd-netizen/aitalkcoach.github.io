@@ -149,7 +149,7 @@ export async function GET(_req: NextRequest) {
     if (b.status === 'accepted') curr.accepted++
     bidStats.set(b.supplier_id, curr)
   }
-  for (const [supplierId, stat] of bidStats) {
+  for (const [supplierId, stat] of Array.from(bidStats.entries())) {
     if (stat.total >= 5 && stat.accepted === 0) {
       const sp = supplierMap.get(supplierId)
       const authUser = userMap.get(supplierId)
