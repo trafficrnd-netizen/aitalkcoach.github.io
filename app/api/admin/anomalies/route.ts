@@ -16,6 +16,7 @@ function daysSince(dateStr: string): number {
   return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86_400_000)
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_req: NextRequest) {
   if (!(await isAuthenticated())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -164,17 +165,9 @@ export async function GET(_req: NextRequest) {
     }
   }
 
-  // ── 🟡 마감일 지난 미입찰 open 요청 ────────────────────────────────
+  // ── 🟡 마감일 지난 미마감 open 요청 ────────────────────────────────
   const today = new Date().toISOString().slice(0, 10)
-  const requestBidCounts = new Map<string, number>()
-  for (const b of allBids ?? []) {
-    requestBidCounts.set(b.supplier_id, (requestBidCounts.get(b.supplier_id) ?? 0) + 1)
-  }
-  const bidsPerRequest = new Map<string, number>()
-  for (const b of allBids ?? []) {
-    // allBids has supplier_id not request_id — skip this, handled differently below
-  }
-  // allRequests 기준으로 마감 지난 open 요청 감지 (입찰 수는 bids 조회 안 했으므로 0건 가정)
+  // allRequests 기준으로 마감 지난 open 요청 감지
   for (const req of allRequests ?? []) {
     if (req.status !== 'open') continue
     if (!req.deadline || req.deadline >= today) continue
