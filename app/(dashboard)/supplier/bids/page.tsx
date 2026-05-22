@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
-import { ClipboardList, FileCheck } from 'lucide-react'
+import { ClipboardList, FileCheck, MapPin } from 'lucide-react'
 
 const BID_STATUS_LABEL: Record<string, string> = {
   pending: '검토 중',
@@ -32,14 +32,14 @@ export default async function MyBidsPage() {
 
   const requestIds: string[] = (bids ?? []).map((b: { request_id: string }) => b.request_id)
 
-  // Fetch request titles
+  // Fetch request titles + delivery_address (낙찰 후 전체 주소 공개용)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: requestRows } = requestIds.length ? await (supabase as any)
     .from('requests')
-    .select('id, title, type, deadline')
+    .select('id, title, type, deadline, delivery_address')
     .in('id', requestIds) : { data: [] }
 
-  const requestMap: Record<string, { title: string; type: string; deadline: string | null }> = {}
+  const requestMap: Record<string, { title: string; type: string; deadline: string | null; delivery_address: string | null }> = {}
   for (const r of (requestRows ?? [])) {
     requestMap[r.id] = r
   }
@@ -221,8 +221,19 @@ export default async function MyBidsPage() {
                   const isCompleted = tx?.status === 'completed'
                   const needsReview = isCompleted && !reviewedTxIds.has(tx.id)
                   const researcherId = tx ? researcherByRequest[tx.request_id] : undefined
+                  const deliveryAddress = requestMap[bid.request_id]?.delivery_address
                   return (
-                    <div className="mt-3 pt-3 border-t border-primary/20">
+                    <div className="mt-3 pt-3 border-t border-primary/20 space-y-2">
+                      {/* 낙찰 후 전체 배송지 공개 */}
+                      {deliveryAddress && (
+                        <div className="flex items-start gap-1.5 text-sm">
+                          <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                          <div>
+                            <span className="text-xs text-muted-foreground mr-1">배송지</span>
+                            <span className="font-medium">{deliveryAddress}</span>
+                          </div>
+                        </div>
+                      )}
                       {isCompleted ? (
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-green-700 font-medium">✅ 거래 완료</span>
@@ -240,7 +251,7 @@ export default async function MyBidsPage() {
                         </div>
                       ) : (
                         <p className="text-sm text-primary font-medium">
-                          🎉 낙찰! 연구자에게 납품을 진행해주세요.
+                          🎉 낙찰! 위 주소로 납품을 진행해주세요.
                         </p>
                       )}
                     </div>
