@@ -2,22 +2,86 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+    /* 배경: 약한 쿨 오프화이트 */
+    --background: 210 20% 98%;
+    --foreground: 222 25% 10%;
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+    /* 카드: 순백 — 배경과 명확히 분리 */
+    --card: 0 0% 100%;
+    --card-foreground: 222 25% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 25% 10%;
+
+    /* Primary: 밝기 44% — tint(5%·10%)가 육안으로 식별 가능한 네이비 블루 */
+    --primary: 217 62% 44%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary: 소프트 블루-그레이 */
+    --secondary: 214 28% 90%;
+    --secondary-foreground: 220 25% 20%;
+
+    /* Muted: 90% lightness — bg-muted를 full opacity로 써도 배경과 구분됨 */
+    --muted: 215 18% 90%;
+    --muted-foreground: 218 14% 46%;
+
+    /* Accent */
+    --accent: 214 35% 87%;
+    --accent-foreground: 221 38% 18%;
+
+    --destructive: 4 68% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Border: 살짝 더 선명하게 */
+    --border: 214 18% 85%;
+    --input: 214 18% 85%;
+
+    --ring: 217 62% 44%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222 30% 7%;
+    --foreground: 213 28% 92%;
+
+    --card: 222 26% 11%;
+    --card-foreground: 213 28% 92%;
+
+    --popover: 222 26% 11%;
+    --popover-foreground: 213 28% 92%;
+
+    --primary: 217 70% 62%;
+    --primary-foreground: 222 30% 7%;
+
+    --secondary: 220 22% 18%;
+    --secondary-foreground: 213 24% 80%;
+
+    --muted: 220 20% 17%;
+    --muted-foreground: 218 15% 58%;
+
+    --accent: 220 22% 18%;
+    --accent-foreground: 213 24% 80%;
+
+    --destructive: 4 58% 44%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 18% 20%;
+    --input: 220 18% 20%;
+
+    --ring: 217 70% 62%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
 @layer utilities {
