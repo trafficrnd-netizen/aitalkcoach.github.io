@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
@@ -18,7 +18,8 @@ import type { SubstanceResult } from '@/app/api/substances/search/route'
 import type { ItemType } from '@/lib/categories'
 import type { EquipmentSubType } from '@/lib/equipment-specs'
 import { cn } from '@/lib/utils'
-import { FlaskConical, Layers, Clock, CalendarClock, ShieldCheck } from 'lucide-react'
+import { RemainingCreditsBar } from '@/components/remaining-credits-bar'
+import { FlaskConical, Layers, Clock, CalendarClock, ShieldCheck, TriangleAlert } from 'lucide-react'
 
 const UNITS = ['mL', 'L', 'g', 'kg', 'mg', 'μg', 'μL', 'ea', '박스', '기타']
 
@@ -74,7 +75,6 @@ export default function SingleRequestPage() {
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // 단백질 필드 상태
   const [proteinSubCat, setProteinSubCat] = useState('')
   const [proteinSpecies, setProteinSpecies] = useState('')
   const [proteinTag, setProteinTag] = useState('')
@@ -82,11 +82,9 @@ export default function SingleRequestPage() {
   const [proteinApps, setProteinApps] = useState<string[]>([])
   const [proteinStorage, setProteinStorage] = useState('')
 
-  // 장비 필드 상태
   const [equipSubType, setEquipSubType] = useState<EquipmentSubType | ''>('')
   const [equipSpecs, setEquipSpecs] = useState<Record<string, string>>({})
 
-  // 소모품·실험기구 상태
   const [supplyTopType, setSupplyTopType] = useState<SupplyTopType | ''>('')
   const [supplySubCode, setSupplySubCode] = useState('')
 
@@ -299,6 +297,21 @@ export default function SingleRequestPage() {
         {/* 품목 유형 */}
         <ItemTypeSelector value={itemType} onChange={handleTypeChange} />
 
+        {/* E: HAZMAT 주의 배너 — 시약·화학물질 선택 시 표시 */}
+        {itemType === 'reagent' && (
+          <div className="flex items-start gap-2 rounded-md border border-orange-300 bg-orange-50 px-3 py-2.5">
+            <TriangleAlert className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+            <div className="text-xs text-orange-800 leading-snug">
+              <span className="font-semibold">⚠ HAZMAT 주의</span> — CAS 번호를 반드시 확인하세요.
+              오입력 시 위험물질이 잘못 납품될 수 있습니다.{' '}
+              {form.casNumber && (
+                <span className="font-mono font-medium">입력된 CAS: {form.casNumber}</span>
+              )}
+              {!form.casNumber && '입력 후 물질명·위험성을 재확인하세요.'}
+            </div>
+          </div>
+        )}
+
         {/* 시약: CAS/물질명 검색 */}
         {itemType === 'reagent' && (
           <>
@@ -341,7 +354,7 @@ export default function SingleRequestPage() {
           </>
         )}
 
-        {/* 단백질·펩타이드: 분류 선택 → 키워드 칩 → 제품명 입력 */}
+        {/* 단백질·펩타이드 */}
         {itemType === 'protein' && (
           <>
             <ProteinFields
@@ -353,7 +366,6 @@ export default function SingleRequestPage() {
               storageTemp={proteinStorage} setStorageTemp={setProteinStorage}
             />
 
-            {/* 키워드 칩 */}
             <div className="space-y-1.5">
               <Label className="text-sm">
                 추천 제품·물질 <span className="text-xs text-muted-foreground">(클릭 시 제품명 자동 입력)</span>
@@ -376,7 +388,6 @@ export default function SingleRequestPage() {
               </div>
             </div>
 
-            {/* 제품명 직접 입력 */}
             <div className="space-y-1.5">
               <Label htmlFor="substanceName">제품명 / 단백질명 *</Label>
               <Input
@@ -398,7 +409,7 @@ export default function SingleRequestPage() {
           </>
         )}
 
-        {/* 소모품·실험기구 전용 필드 */}
+        {/* 소모품·실험기구 */}
         {itemType === 'supply' && (
           <SupplyFields
             topType={supplyTopType}
@@ -410,7 +421,7 @@ export default function SingleRequestPage() {
           />
         )}
 
-        {/* 장비 전용 필드 */}
+        {/* 장비 */}
         {itemType === 'equipment' && (
           <EquipmentFields
             subType={equipSubType} setSubType={setEquipSubType}
@@ -436,7 +447,7 @@ export default function SingleRequestPage() {
           </>
         )}
 
-        {/* 수량 + 단위 (공통) */}
+        {/* 수량 + 단위 */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="qty">수량 *</Label>
@@ -528,6 +539,9 @@ export default function SingleRequestPage() {
 
         <Button type="submit" className="w-full">미리보기 →</Button>
       </form>
+
+      {/* 잔여 크레딧 · 무료 한도 */}
+      <RemainingCreditsBar />
     </div>
   )
 }

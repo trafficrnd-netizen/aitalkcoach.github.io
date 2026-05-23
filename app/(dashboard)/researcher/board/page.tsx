@@ -7,23 +7,46 @@ export default async function ResearcherBoardPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Open requests
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: requestRows } = await (supabase as any)
-    .from('requests')
-    .select('id, title, type, deadline, delivery_address, created_at')
-    .eq('status', 'open')
-    .order('created_at', { ascending: false })
-    .limit(30)
+  const today = new Date().toISOString().split('T')[0]
+
+  // 1차 배치: 견적 요청 + 공급자 광고를 병렬 조회
+  const [{ data: requestRows }, { data: adRows }] = await Promise.all([
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('requests')
+      .select('id, title, type, deadline, delivery_address, created_at')
+      .eq('status', 'open')
+      .order('created_at', { ascending: false })
+      .limit(30),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('supplier_ads')
+      .select('id, supplier_id, title, description, categories, regions, contact_info, valid_until, created_at')
+      .gte('valid_until', today)
+      .order('created_at', { ascending: false })
+      .limit(30),
+  ])
 
   const requestIds: string[] = (requestRows ?? []).map((r: { id: string }) => r.id)
+  const supplierIds: string[] = Array.from(
+    new Set<string>((adRows ?? []).map((a: { supplier_id: string }) => a.supplier_id))
+  )
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: itemRows } = requestIds.length ? await (supabase as any)
-    .from('request_items').select('request_id').in('request_id', requestIds) : { data: [] }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: bidRows } = requestIds.length ? await (supabase as any)
-    .from('bids').select('request_id').in('request_id', requestIds) : { data: [] }
+  // 2차 배치: 품목 수 + 입찰 수 + 공급자 프로필을 병렬 조회
+  const [{ data: itemRows }, { data: bidRows }, { data: profileRows }] = await Promise.all([
+    requestIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (supabase as any).from('request_items').select('request_id').in('request_id', requestIds)
+      : Promise.resolve({ data: [] }),
+    requestIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (supabase as any).from('bids').select('request_id').in('request_id', requestIds)
+      : Promise.resolve({ data: [] }),
+    supplierIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (supabase as any).from('supplier_profiles').select('user_id, company_name').in('user_id', supplierIds)
+      : Promise.resolve({ data: [] }),
+  ])
 
   const itemMap: Record<string, number> = {}
   for (const r of (itemRows ?? [])) itemMap[r.request_id] = (itemMap[r.request_id] ?? 0) + 1
@@ -38,21 +61,6 @@ export default async function ResearcherBoardPage() {
     item_count: itemMap[r.id] ?? 0,
     bid_count: bidMap[r.id] ?? 0,
   }))
-
-  // Active supplier ads
-  const today = new Date().toISOString().split('T')[0]
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: adRows } = await (supabase as any)
-    .from('supplier_ads')
-    .select('id, supplier_id, title, description, categories, regions, contact_info, valid_until, created_at')
-    .gte('valid_until', today)
-    .order('created_at', { ascending: false })
-    .limit(30)
-
-  const supplierIds: string[] = Array.from(new Set<string>((adRows ?? []).map((a: { supplier_id: string }) => a.supplier_id)))
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: profileRows } = supplierIds.length ? await (supabase as any)
-    .from('supplier_profiles').select('user_id, company_name').in('user_id', supplierIds) : { data: [] }
 
   const profileMap: Record<string, string> = {}
   for (const p of (profileRows ?? [])) profileMap[p.user_id] = p.company_name

@@ -1,0 +1,143 @@
+/**
+ * 친구 초대(레퍼럴) 헬퍼 — 서버 전용
+ * - getOrCreateReferralCode: 사용자별 고유 초대 코드 발급/조회
+ * - processReferralSignup: 신규 가입 시 초대자에게 크레딧 적립
+ */
+import 'server-only'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { awardCredits, type Role } from '@/lib/credits'
+
+// 혼동되는 문자(I, O, 0, 1) 제외
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+
+export function genReferralCode(): string {
+  let s = ''
+  for (let i = 0; i < 8; i++) {
+    s += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
+  }
+  return s
+}
+
+/** 사용자의 초대 코드 조회 — 없으면 생성 */
+export async function getOrCreateReferralCode(
+  userId: string,
+  role: Role
+): Promise<string | null> {
+  const admin = createAdminClient()
+  const table = role === 'supplier' ? 'supplier_profiles' : 'researcher_profiles'
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: profile } = await (admin as any)
+    .from(table)
+    .select('referral_code')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (profile?.referral_code) return profile.referral_code
+
+  // 고유 코드 생성 (충돌 시 재시도)
+  for (let attempt = 0; attempt < 6; attempt++) {
+    const candidate = genReferralCode()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (admin as any)
+      .from(table)
+      .update({ referral_code: candidate })
+      .eq('user_id', userId)
+    if (!error) return candidate
+  }
+  return null
+}
+
+interface InviterInfo {
+  userId: string
+  role: Role
+}
+
+/** 초대 코드로 초대자 찾기 */
+async function findInviterByCode(code: string): Promise<InviterInfo | null> {
+  const admin = createAdminClient()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: researcher } = await (admin as any)
+    .from('researcher_profiles')
+    .select('user_id')
+    .eq('referral_code', code)
+    .maybeSingle()
+  if (researcher?.user_id) return { userId: researcher.user_id, role: 'researcher' }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: supplier } = await (admin as any)
+    .from('supplier_profiles')
+    .select('user_id')
+    .eq('referral_code', code)
+    .maybeSingle()
+  if (supplier?.user_id) return { userId: supplier.user_id, role: 'supplier' }
+
+  return null
+}
+
+/**
+ * 신규 가입 완료 시 호출 — 초대 코드가 유효하면 초대자에게 크레딧 적립.
+ * 가입 흐름을 막지 않도록 호출부에서 try/catch 권장.
+ */
+export async function processReferralSignup(
+  code: string,
+  newUserId: string,
+  newUserEmail: string
+): Promise<void> {
+  const cleanCode = (code || '').trim().toUpperCase()
+  if (!cleanCode) return
+
+  const inviter = await findInviterByCode(cleanCode)
+  if (!inviter) return
+  if (inviter.userId === newUserId) return // 자기 자신 초대 방지
+
+  const admin = createAdminClient()
+
+  // 기존 'sent' 초대 행이 있으면 joined 로 갱신, 없으면 새로 기록
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existing } = await (admin as any)
+    .from('referrals')
+    .select('id')
+    .eq('code', cleanCode)
+    .eq('invitee_email', newUserEmail.toLowerCase())
+    .eq('status', 'sent')
+    .maybeSingle()
+
+  let referralId: number | null = null
+  if (existing?.id) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (admin as any)
+      .from('referrals')
+      .update({ status: 'joined', invitee_id: newUserId, joined_at: new Date().toISOString() })
+      .eq('id', existing.id)
+    referralId = existing.id
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: inserted } = await (admin as any)
+      .from('referrals')
+      .insert({
+        inviter_id: inviter.userId,
+        inviter_role: inviter.role,
+        code: cleanCode,
+        invitee_email: newUserEmail.toLowerCase(),
+        invitee_id: newUserId,
+        status: 'joined',
+        joined_at: new Date().toISOString(),
+      })
+      .select('id')
+      .single()
+    referralId = inserted?.id ?? null
+  }
+
+  // 초대자에게 크레딧 적립
+  const ruleKey =
+    inviter.role === 'supplier' ? 'supplier_invite_signup' : 'researcher_invite_signup'
+  await awardCredits(
+    inviter.userId,
+    ruleKey,
+    inviter.role,
+    'referrals',
+    referralId ? String(referralId) : undefined
+  )
+}

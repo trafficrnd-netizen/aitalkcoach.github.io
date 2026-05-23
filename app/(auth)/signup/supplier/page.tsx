@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -8,10 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { signupSupplier } from '@/lib/actions/auth'
-import { isPersonalEmail } from '@/lib/email-validation'
+import { isInstitutionalEmail, INSTITUTIONAL_EMAIL_ERROR } from '@/lib/email-validation'
 import { PrivacyConsent } from '@/components/privacy-consent'
 import { PhoneVerify } from '@/components/phone-verify'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, MailCheck, Gift } from 'lucide-react'
 
 const CATEGORIES = [
   { value: 'reagent', label: '시약·화학물질' },
@@ -35,10 +35,15 @@ export default function SupplierSignupPage() {
   const [hazmatCompliance, setHazmatCompliance] = useState(false)
   const [consent, setConsent] = useState({ terms: false, privacy: false, thirdParty: false, marketing: false })
   const [verifiedPhone, setVerifiedPhone] = useState('')
-  // 개인 이메일 트랙
-  const [emailValue, setEmailValue] = useState('')
-  const [bizDoc, setBizDoc] = useState<File | null>(null)
-  const emailIsPersonal = emailValue ? isPersonalEmail(emailValue) : false
+  const [pendingEmail, setPendingEmail] = useState('')
+  const [referralCode, setReferralCode] = useState('')
+
+  // URL의 ?ref= 초대 코드 읽기
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref')
+    if (ref) setReferralCode(ref.trim().toUpperCase())
+  }, [])
 
   function formatBusinessNumber(value: string) {
     const digits = value.replace(/\D/g, '').slice(0, 10)
@@ -100,10 +105,9 @@ export default function SupplierSignupPage() {
 
     const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
-
-    // 개인 이메일 트랙: 사업자등록증 첨부 필수
-    if (isPersonalEmail(email) && !bizDoc) {
-      setError('gmail · naver 등 개인 이메일은 사업자등록증 첨부가 필요합니다.')
+    if (!isInstitutionalEmail(email)) {
+      setError(INSTITUTIONAL_EMAIL_ERROR)
+      setLoading(false)
       return
     }
 
@@ -120,6 +124,7 @@ export default function SupplierSignupPage() {
     formData.set('thirdPartyConsent', consent.thirdParty ? 'true' : 'false')
     formData.set('marketingConsent', consent.marketing ? 'true' : 'false')
     formData.set('contactPhone', verifiedPhone)
+    formData.set('referralCode', referralCode)
     setLoading(true)
 
     const result = await signupSupplier(formData)
@@ -130,38 +135,42 @@ export default function SupplierSignupPage() {
       return
     }
 
-    // 개인 이메일 트랙: 사업자등록증 이메일 전송 (서버 저장 없음)
-    if (isPersonalEmail(email) && bizDoc) {
-      const uploadForm = new FormData()
-      uploadForm.set('bizDoc',         bizDoc)
-      uploadForm.set('businessNumber', businessNumber.replace(/-/g, ''))
-      uploadForm.set('companyName',    formData.get('companyName') as string)
-      uploadForm.set('contactName',    formData.get('contactName') as string)
-      uploadForm.set('contactEmail',   email)
-      uploadForm.set('contactPhone',   verifiedPhone)
-
-      const uploadRes = await fetch('/api/supplier-doc-upload', {
-        method: 'POST',
-        body: uploadForm,
-      })
-      if (!uploadRes.ok) {
-        const uploadData = await uploadRes.json().catch(() => ({}))
-        // 계정은 이미 생성됐으므로 에러를 안내하되 로그인은 가능하게
-        setError(
-          (uploadData.error ?? '사업자등록증 전송에 실패했습니다.') +
-          ' 로그인 후 담당자(sales@ai-traffic.kr)에게 직접 이메일을 보내주세요.',
-        )
-        setLoading(false)
-        return
-      }
-
-      router.push('/supplier/board')
-      router.refresh()
+    if (result?.emailPending) {
+      setPendingEmail(result.email ?? '')
+      setLoading(false)
       return
     }
 
     router.push('/supplier')
     router.refresh()
+  }
+
+  // Email confirmation pending screen
+  if (pendingEmail) {
+    return (
+      <div className="w-full max-w-md">
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-8 text-center space-y-4">
+          <MailCheck className="h-12 w-12 text-primary mx-auto" />
+          <div>
+            <h2 className="text-xl font-bold mb-1">이메일을 확인해주세요</h2>
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{pendingEmail}</span>으로<br />
+              인증 메일을 발송했습니다.
+            </p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            메일함에서 <span className="font-semibold text-foreground">인증 링크를 클릭</span>하면<br />
+            가입이 완료되고 로그인하실 수 있습니다.
+          </p>
+          <p className="text-xs text-muted-foreground">
+            메일이 보이지 않으면 스팸함도 확인해주세요.
+          </p>
+          <Link href="/login" className="block">
+            <Button variant="outline" className="w-full">로그인 페이지로</Button>
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -171,11 +180,21 @@ export default function SupplierSignupPage() {
         <p className="text-sm text-muted-foreground mb-1">
           처음 20개사 Pro 1개월 무료 얼리버드 혜택을 드립니다.
         </p>
-        <p className="text-xs text-muted-foreground mb-6">
-          회사 이메일은 즉시 입찰 가능 · gmail·naver 등 개인 이메일은 사업자등록증 첨부 후 24시간 내 심사
-        </p>
+        <p className="text-xs text-amber-600 mb-6">회사 이메일만 베타 참여가 가능합니다</p>
+
+        {/* 초대 코드 적용 안내 */}
+        {referralCode && (
+          <div className="mb-6 flex items-center gap-2 rounded-md border border-accent/40 bg-accent/10 px-3 py-2.5">
+            <Gift className="h-4 w-4 shrink-0 text-accent-foreground" />
+            <p className="text-xs text-accent-foreground">
+              초대 코드 <span className="font-mono font-bold">{referralCode}</span> 적용됨 — 가입 시
+              초대해주신 분께 크레딧이 적립됩니다.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <input type="hidden" name="referralCode" value={referralCode} />
           {/* 회사명 */}
           <div className="space-y-2">
             <Label htmlFor="companyName">회사명</Label>
@@ -326,42 +345,8 @@ export default function SupplierSignupPage() {
               placeholder="contact@company.com"
               required
               autoComplete="email"
-              value={emailValue}
-              onChange={e => setEmailValue(e.target.value)}
             />
-            {emailIsPersonal && (
-              <p className="text-xs text-amber-600">
-                개인 이메일(gmail·naver 등)은 사업자등록증 첨부 후 24시간 내 심사를 거칩니다.
-              </p>
-            )}
-            {emailValue && !emailIsPersonal && (
-              <p className="text-xs text-primary">✓ 회사 이메일 — 가입 즉시 입찰 가능합니다.</p>
-            )}
           </div>
-
-          {/* 사업자등록증 첨부 (개인 이메일 시에만 표시) */}
-          {emailIsPersonal && (
-            <div className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 space-y-2">
-              <Label htmlFor="bizDoc" className="text-sm font-semibold text-amber-800">
-                사업자등록증 첨부 <span className="text-destructive">*</span>
-              </Label>
-              <p className="text-xs text-amber-700 leading-relaxed">
-                개인 이메일 사용 시 사업자등록증으로 본인을 확인합니다.
-                서류는 심사 담당자에게 이메일로 전달되며 서버에 저장되지 않습니다.
-              </p>
-              <input
-                id="bizDoc"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
-                required={emailIsPersonal}
-                className="block w-full text-sm text-gray-700 file:mr-3 file:rounded file:border-0 file:bg-amber-100 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-amber-700 hover:file:bg-amber-200 cursor-pointer"
-                onChange={e => setBizDoc(e.target.files?.[0] ?? null)}
-              />
-              {bizDoc && (
-                <p className="text-xs text-primary">✓ {bizDoc.name} ({(bizDoc.size / 1024).toFixed(0)} KB)</p>
-              )}
-            </div>
-          )}
 
           {/* 비밀번호 */}
           <div className="space-y-2">

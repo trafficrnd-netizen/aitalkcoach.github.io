@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Store } from 'lucide-react'
 import { MarketplaceList } from '@/components/marketplace-list'
+import { RemainingCreditsBar } from '@/components/remaining-credits-bar'
 
 export default async function MarketplacePage() {
   const supabase = await createClient()
@@ -26,23 +27,19 @@ export default async function MarketplacePage() {
 
   const requestIds: string[] = (requests ?? []).map((r: { id: string }) => r.id)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: itemCounts } = requestIds.length ? await (supabase as any)
-    .from('request_items')
-    .select('request_id')
-    .in('request_id', requestIds) : { data: [] }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: bidCounts } = requestIds.length ? await (supabase as any)
-    .from('bids')
-    .select('request_id')
-    .in('request_id', requestIds) : { data: [] }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: myBids } = await (supabase as any)
-    .from('bids')
-    .select('request_id')
-    .eq('supplier_id', user.id)
+  // 품목 수 + 입찰 수 + 내 입찰을 병렬 조회
+  const [{ data: itemCounts }, { data: bidCounts }, { data: myBids }] = await Promise.all([
+    requestIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (supabase as any).from('request_items').select('request_id').in('request_id', requestIds)
+      : Promise.resolve({ data: [] }),
+    requestIds.length
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (supabase as any).from('bids').select('request_id').in('request_id', requestIds)
+      : Promise.resolve({ data: [] }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any).from('bids').select('request_id').eq('supplier_id', user.id),
+  ])
 
   const itemCountMap: Record<string, number> = {}
   for (const row of (itemCounts ?? [])) {
@@ -83,6 +80,9 @@ export default async function MarketplacePage() {
         bidCountMap={bidCountMap}
         myBidSet={myBidList}
       />
+
+      {/* 잔여 크레딧 · 무료 한도 */}
+      <RemainingCreditsBar />
     </div>
   )
 }

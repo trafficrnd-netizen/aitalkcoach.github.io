@@ -2,90 +2,116 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * ai-traffic.kr 디자인 토큰 — "Oatmeal & Ink"
+ *
+ * Primary  : Deep Navy  #1E2F52   (신뢰·전문성)
+ * Secondary: Muted Teal #2A9D8F   (차분한 강조)
+ * Accent   : Amber      #F4A261   (CTA, 입찰·구매 버튼)
+ * Background: Oatmeal   #F3EDE2   (페이지 배경, 따뜻한 중성)
+ * Card     : White                 (제품 사진·데이터 가독성)
+ * Foreground: Ink Charcoal #1A2236
+ *
+ * 경매 상태:
+ *  - 진행중 : --secondary (Teal)
+ *  - 마감임박: --accent    (Amber)
+ *  - 종료   : --muted     (Gray)
+ */
+
 @layer base {
   :root {
-    /* 배경: 약한 쿨 오프화이트 */
-    --background: 210 20% 98%;
-    --foreground: 222 25% 10%;
+    --background: 36 39% 92%;          /* #F3EDE2 Oatmeal */
+    --foreground: 222 35% 16%;         /* #1A2236 Ink */
 
-    /* 카드: 순백 — 배경과 명확히 분리 */
-    --card: 0 0% 100%;
-    --card-foreground: 222 25% 10%;
+    --card: 0 0% 100%;                 /* #FFFFFF */
+    --card-foreground: 222 35% 16%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 25% 10%;
+    --popover-foreground: 222 35% 16%;
 
-    /* Primary: 밝기 44% — tint(5%·10%)가 육안으로 식별 가능한 네이비 블루 */
-    --primary: 217 62% 44%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 220 47% 22%;            /* #1E2F52 Deep Navy */
+    --primary-foreground: 36 39% 96%;  /* Oatmeal light */
 
-    /* Secondary: 소프트 블루-그레이 */
-    --secondary: 214 28% 90%;
-    --secondary-foreground: 220 25% 20%;
+    --secondary: 172 56% 39%;          /* #2A9D8F Muted Teal */
+    --secondary-foreground: 0 0% 100%;
 
-    /* Muted: 90% lightness — bg-muted를 full opacity로 써도 배경과 구분됨 */
-    --muted: 215 18% 90%;
-    --muted-foreground: 218 14% 46%;
+    --accent: 27 87% 67%;              /* #F4A261 Amber */
+    --accent-foreground: 222 35% 16%;
 
-    /* Accent */
-    --accent: 214 35% 87%;
-    --accent-foreground: 221 38% 18%;
+    --muted: 36 22% 86%;               /* Soft oatmeal-gray */
+    --muted-foreground: 222 15% 38%;
 
-    --destructive: 4 68% 50%;
+    --destructive: 0 70% 48%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Border: 살짝 더 선명하게 */
-    --border: 214 18% 85%;
-    --input: 214 18% 85%;
+    --border: 36 22% 78%;
+    --input: 36 22% 78%;
+    --ring: 220 47% 22%;
 
-    --ring: 217 62% 44%;
+    /* 차트 팔레트 — 접근성 (색맹친화) */
+    --chart-1: 220 47% 22%;            /* Navy */
+    --chart-2: 172 56% 39%;            /* Teal */
+    --chart-3: 27 87% 60%;             /* Amber-darker */
+    --chart-4: 285 35% 50%;            /* Plum */
+    --chart-5: 195 50% 45%;            /* Steel */
+
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222 30% 7%;
-    --foreground: 213 28% 92%;
+    --background: 222 35% 9%;
+    --foreground: 36 39% 94%;
 
-    --card: 222 26% 11%;
-    --card-foreground: 213 28% 92%;
+    --card: 222 32% 13%;
+    --card-foreground: 36 39% 94%;
 
-    --popover: 222 26% 11%;
-    --popover-foreground: 213 28% 92%;
+    --popover: 222 32% 13%;
+    --popover-foreground: 36 39% 94%;
 
-    --primary: 217 70% 62%;
-    --primary-foreground: 222 30% 7%;
+    --primary: 36 39% 94%;
+    --primary-foreground: 222 35% 9%;
 
-    --secondary: 220 22% 18%;
-    --secondary-foreground: 213 24% 80%;
+    --secondary: 172 56% 45%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 220 20% 17%;
-    --muted-foreground: 218 15% 58%;
+    --accent: 27 87% 67%;
+    --accent-foreground: 222 35% 9%;
 
-    --accent: 220 22% 18%;
-    --accent-foreground: 213 24% 80%;
+    --muted: 222 20% 18%;
+    --muted-foreground: 36 22% 70%;
 
-    --destructive: 4 58% 44%;
+    --destructive: 0 65% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 18% 20%;
-    --input: 220 18% 20%;
+    --border: 222 20% 22%;
+    --input: 222 20% 22%;
+    --ring: 36 39% 94%;
 
-    --ring: 217 70% 62%;
-  }
-
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    -webkit-font-smoothing: antialiased;
+    --chart-1: 36 39% 94%;
+    --chart-2: 172 56% 55%;
+    --chart-3: 27 87% 67%;
+    --chart-4: 285 45% 65%;
+    --chart-5: 195 55% 60%;
   }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  }
+}
+
+/* 경매·견적 상태 배지 헬퍼 */
+@layer components {
+  .status-active   { @apply bg-secondary/15 text-secondary border-secondary/30; }
+  .status-closing  { @apply bg-accent/20 text-accent-foreground border-accent/40; }
+  .status-closed   { @apply bg-muted text-muted-foreground border-border; }
+
+  /* CTA 강조 버튼 (Amber) — primary 위에 덮어쓰기 용도 */
+  .btn-cta {
+    @apply bg-accent text-accent-foreground hover:bg-accent/90
+           shadow-sm hover:shadow transition-all font-medium;
   }
 }

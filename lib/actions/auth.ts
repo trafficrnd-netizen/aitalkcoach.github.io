@@ -1,16 +1,20 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redis } from '@/lib/redis'
 import type { Database } from '@/types/database'
-import { isInstitutionalEmail, INSTITUTIONAL_EMAIL_ERROR, isPersonalEmail } from '@/lib/email-validation'
+import { isInstitutionalEmail, INSTITUTIONAL_EMAIL_ERROR } from '@/lib/email-validation'
+import { processReferralSignup } from '@/lib/referral'
 
 type ResearcherProfileInsert = Database['public']['Tables']['researcher_profiles']['Insert']
 type SupplierProfileInsert = Database['public']['Tables']['supplier_profiles']['Insert']
 
 async function checkPhoneVerified(phone: string): Promise<boolean> {
-  const flag = await redis.get<string>(`otp:verified:${phone}`)
-  return flag === 'ok'
+  // Upstash Redis auto-parses JSON on retrieval, so '1' stored as string
+  // may come back as number 1. Check for existence (non-null) instead of exact value.
+  const flag = await redis.get(`otp:verified:${phone}`)
+  return flag != null
 }
 
 export async function login(formData: FormData) {
@@ -22,12 +26,18 @@ export async function login(formData: FormData) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
+    if (error.message === 'Email not confirmed') {
+      return {
+        error: '이메일 인증이 필요합니다. 가입 시 발송된 인증 이메일의 링크를 클릭한 후 다시 로그인해주세요.',
+        emailNotConfirmed: true,
+      }
+    }
     return { error: '이메일 또는 비밀번호가 올바르지 않습니다.' }
   }
 
   if (!data.user) return { error: '로그인에 실패했습니다.' }
 
-  // user_metadata에 user_type이 이미 저장되어 있으므로 DB 쿼리 불필요
+  // user_metadata.user_type 기준으로 라우팅 (DB 프로필 존재 여부와 무관하게 정확히 동작)
   const userType = data.user.user_metadata?.user_type
   return { destination: userType === 'supplier' ? '/supplier/board' : '/researcher/board' }
 }
@@ -44,6 +54,7 @@ export async function signupResearcher(formData: FormData) {
   const institution = formData.get('institution') as string
   const department = (formData.get('department') as string) || null
   const phone = (formData.get('phone') as string) || ''
+  const referralCode = ((formData.get('referralCode') as string) || '').trim()
 
   if (!phone) return { error: '휴대폰 본인인증을 완료해주세요.' }
 
@@ -55,6 +66,7 @@ export async function signupResearcher(formData: FormData) {
     password,
     options: {
       data: { name, user_type: 'researcher' },
+      emailRedirectTo: 'https://ai-traffic.kr/auth/callback',
     },
   })
 
@@ -69,6 +81,9 @@ export async function signupResearcher(formData: FormData) {
     return { error: '가입 중 오류가 발생했습니다.' }
   }
 
+  // admin client 사용: RLS 우회 + public.users 트리거 실행 후 바로 insert 가능
+  const admin = createAdminClient()
+
   const profileData: ResearcherProfileInsert = {
     user_id: data.user.id,
     name,
@@ -77,14 +92,25 @@ export async function signupResearcher(formData: FormData) {
     phone,
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: profileError } = await (supabase as any).from('researcher_profiles').insert(profileData)
+  const { error: profileError } = await (admin as any).from('researcher_profiles').insert(profileData)
 
   if (profileError) {
     console.error('[signup] researcher_profiles insert 실패:', profileError.message)
   }
 
+  // 초대 코드 처리 — 초대자에게 크레딧 적립 (실패해도 가입은 정상 완료)
+  if (referralCode) {
+    try {
+      await processReferralSignup(referralCode, data.user.id, email)
+    } catch (e) {
+      console.error('[signup] 초대 처리 실패:', e)
+    }
+  }
+
   // Consume the verified flag so it can't be reused
   await redis.del(`otp:verified:${phone}`)
+
+  return { emailPending: true, email }
 }
 
 export async function signupSupplier(formData: FormData) {
@@ -93,14 +119,7 @@ export async function signupSupplier(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
-  // 완전히 알 수 없는 도메인(빈 도메인 등)은 차단, 개인 이메일은 서류 심사 트랙으로 허용
-  const domain = email.split('@')[1]?.toLowerCase()
-  if (!domain) return { error: '올바른 이메일 주소를 입력해주세요.' }
-
-  // 연구자용 기관 이메일 에러 메시지는 공급자에게 노출하지 않음
-  void INSTITUTIONAL_EMAIL_ERROR
-
-  const verificationStatus: string = isPersonalEmail(email) ? 'pending' : 'instant'
+  if (!isInstitutionalEmail(email)) return { error: INSTITUTIONAL_EMAIL_ERROR }
 
   const companyName = formData.get('companyName') as string
   const businessNumber = (formData.get('businessNumber') as string).replace(/-/g, '')
@@ -112,6 +131,7 @@ export async function signupSupplier(formData: FormData) {
   const categories = formData.getAll('categories') as string[]
   const handlesHazmat = formData.get('handlesHazmat') === 'true'
   const hazmatLicenseNo = (formData.get('hazmatLicenseNo') as string) || null
+  const referralCode = ((formData.get('referralCode') as string) || '').trim()
 
   if (!contactPhone) return { error: '담당자 휴대폰 본인인증을 완료해주세요.' }
 
@@ -123,6 +143,7 @@ export async function signupSupplier(formData: FormData) {
     password,
     options: {
       data: { name: companyName, user_type: 'supplier' },
+      emailRedirectTo: 'https://ai-traffic.kr/auth/callback',
     },
   })
 
@@ -136,6 +157,9 @@ export async function signupSupplier(formData: FormData) {
   if (!data.user) {
     return { error: '가입 중 오류가 발생했습니다.' }
   }
+
+  // admin client 사용: RLS 우회 + public.users 트리거 실행 후 바로 insert 가능
+  const admin = createAdminClient()
 
   const profileData: SupplierProfileInsert = {
     user_id: data.user.id,
@@ -149,10 +173,9 @@ export async function signupSupplier(formData: FormData) {
     hazmat_license_no: hazmatLicenseNo,
     contact_name: contactName,
     contact_phone: contactPhone,
-    verification_status: verificationStatus,
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: profileError } = await (supabase as any)
+  const { error: profileError } = await (admin as any)
     .from('supplier_profiles')
     .insert(profileData)
 
@@ -163,11 +186,47 @@ export async function signupSupplier(formData: FormData) {
     console.error('[signup] supplier_profiles insert 실패:', profileError.message)
   }
 
+  // 초대 코드 처리 — 초대자에게 크레딧 적립 (실패해도 가입은 정상 완료)
+  if (referralCode) {
+    try {
+      await processReferralSignup(referralCode, data.user.id, email)
+    } catch (e) {
+      console.error('[signup] 초대 처리 실패:', e)
+    }
+  }
+
   // Consume the verified flag
   await redis.del(`otp:verified:${contactPhone}`)
+
+  return { emailPending: true, email }
 }
 
 export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
+}
+
+export async function deleteAccount() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return { error: '로그인이 필요합니다.' }
+
+  const admin = createAdminClient()
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any).from('researcher_profiles').delete().eq('user_id', user.id)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any).from('supplier_profiles').delete().eq('user_id', user.id)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any).from('users').delete().eq('id', user.id)
+
+  const { error: authError } = await admin.auth.admin.deleteUser(user.id)
+  if (authError) {
+    console.error('[deleteAccount] auth.admin.deleteUser 실패:', authError.message)
+    return { error: '계정 삭제 중 오류가 발생했습니다.' }
+  }
+
+  await supabase.auth.signOut()
+  return { success: true }
 }
