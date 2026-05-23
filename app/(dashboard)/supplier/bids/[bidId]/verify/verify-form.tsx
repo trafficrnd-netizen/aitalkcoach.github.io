@@ -1,21 +1,23 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useFormState } from 'react-dom'
 import { submitVerificationFile } from '@/lib/actions/bid-verification'
+import { SubmitButton } from '@/components/ui/submit-button'
 import { AlertCircle } from 'lucide-react'
 
 interface Props {
   bidId: string
 }
 
+type State = { error?: string } | null
+
+async function formAction(prev: State, formData: FormData): Promise<State> {
+  const result = await submitVerificationFile(formData)
+  return result ?? null
+}
+
 export function VerifyForm({ bidId }: Props) {
-  const [state, action, isPending] = useActionState(
-    async (_prev: { error?: string } | null, formData: FormData) => {
-      const result = await submitVerificationFile(formData)
-      return result ?? null
-    },
-    null,
-  )
+  const [state, action] = useFormState(formAction, null)
 
   return (
     <form action={action} className="space-y-4">
@@ -49,13 +51,12 @@ export function VerifyForm({ bidId }: Props) {
         </p>
       </div>
 
-      <button
-        type="submit"
-        disabled={isPending}
+      <SubmitButton
+        pendingText="업로드 중…"
         className="w-full inline-flex items-center justify-center rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
       >
-        {isPending ? '업로드 중…' : '자료 제출하기'}
-      </button>
+        자료 제출하기
+      </SubmitButton>
     </form>
   )
 }

@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
           입찰 시작하기 →
         </a>
       </p>
-      <p style="margin-top:32px;font-size:12px;color:#9ca3af">BidVibe — 연구 조달 역경매 플랫폼</p>
+      <p style="margin-top:32px;font-size:12px;color:#9ca3af">BidVibe — 연구실 시약·소모품·장비 역경매 B2B 조달 플랫폼</p>
     </div>
   `
 
@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
       <p style="font-size:14px;color:#6b7280;margin-top:12px">
         문의 사항은 <a href="mailto:sales@ai-traffic.kr" style="color:#4f46e5">sales@ai-traffic.kr</a>로 연락해주세요.
       </p>
-      <p style="margin-top:32px;font-size:12px;color:#9ca3af">BidVibe — 연구 조달 역경매 플랫폼</p>
+      <p style="margin-top:32px;font-size:12px;color:#9ca3af">BidVibe — 연구실 시약·소모품·장비 역경매 B2B 조달 플랫폼</p>
     </div>
   `
 
