@@ -117,20 +117,17 @@ img {
   user-select: none;
 }
 
-/* 인쇄 차단 — body 숨기고 안내 문구만 표시 */
+/* print 워터마크 — 평소 숨김, 인쇄/PDF 저장 시만 표시 */
+.watermark-print { display: none; }
+
 @media print {
-  body {
-    visibility: hidden !important;
-  }
-  body::before {
-    visibility: visible;
-    display: block;
-    content: "이 페이지는 인쇄할 수 없습니다. / This page cannot be printed.";
-    font-size: 22px;
-    text-align: center;
-    padding-top: 40vh;
-    color: #1E2F52;
-    font-family: sans-serif;
+  /* print 전용 워터마크 표시 */
+  .watermark-print {
+    display: block !important;
+    opacity: 1 !important;
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
   }
 }
 
