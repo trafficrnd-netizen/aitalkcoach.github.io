@@ -103,6 +103,45 @@
   }
 }
 
+/* ── 카피 방지 전역 CSS ──────────────────────────────────────────────── */
+
+/* 모바일 길게누르기(callout) + 탭 하이라이트 제거 */
+* {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 이미지 드래그 방지 */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* 인쇄 차단 — body 숨기고 안내 문구만 표시 */
+@media print {
+  body {
+    visibility: hidden !important;
+  }
+  body::before {
+    visibility: visible;
+    display: block;
+    content: "이 페이지는 인쇄할 수 없습니다. / This page cannot be printed.";
+    font-size: 22px;
+    text-align: center;
+    padding-top: 40vh;
+    color: #1E2F52;
+    font-family: sans-serif;
+  }
+}
+
+/* DevTools 감지 시 컨텐츠 흐림 처리 */
+html.devtools-open main,
+html.devtools-open [data-protect] {
+  filter: blur(7px) !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
 /* 경매·견적 상태 배지 헬퍼 */
 @layer components {
   .status-active   { @apply bg-secondary/15 text-secondary border-secondary/30; }
