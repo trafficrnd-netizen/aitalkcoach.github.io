@@ -1,58 +1,84 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useMemo } from 'react'
 
 interface Props {
   email: string
 }
 
 /**
- * 캔버스로 타일을 생성해 반복 배경으로 사용하는 워터마크.
- * DOM 요소 하나를 제거해도 배경 이미지로 남아 스크린샷에도 표시됨.
+ * DOM 기반 반복 워터마크.
+ * Canvas toDataURL 대신 절대위치 span 배열로 구현 — 렌더링 누락 없음.
+ * 스크린샷에도 식별 가능한 투명도(12%) 적용.
  */
 export function Watermark({ email }: Props) {
-  const overlayRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const overlay = overlayRef.current
-    if (!overlay || !email) return
-
-    // 타일 캔버스 생성
-    const canvas = document.createElement('canvas')
-    const W = 420
-    const H = 180
-    canvas.width = W
-    canvas.height = H
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    ctx.save()
-    ctx.clearRect(0, 0, W, H)
-    ctx.translate(W / 2, H / 2)
-    ctx.rotate(-Math.PI / 7) // -약 25도 기울기
-
-    ctx.font = '600 11.5px "SF Mono", "Fira Code", monospace'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillStyle = 'rgba(30, 47, 82, 0.07)'
-
-    ctx.fillText(email, 0, -9)
-    ctx.fillText('ai-traffic.kr', 0, 9)
-    ctx.restore()
-
-    const dataUrl = canvas.toDataURL('image/png')
-
-    overlay.style.backgroundImage = `url(${dataUrl})`
-    overlay.style.backgroundRepeat = 'repeat'
-    overlay.style.backgroundSize = `${W}px ${H}px`
-  }, [email])
+  // 뷰포트를 채울 타일 좌표 생성 (빌드 타임 고정, 이메일로 seed)
+  const tiles = useMemo(() => {
+    const items: { top: number; left: number; key: string }[] = []
+    const colW = 340
+    const rowH = 160
+    const cols = 8
+    const rows = 10
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        // 홀수 행은 반 칸 오프셋 (벽돌 패턴)
+        const offset = r % 2 === 1 ? colW / 2 : 0
+        items.push({
+          key: `${r}-${c}`,
+          top: r * rowH - rowH,
+          left: c * colW - colW + offset,
+        })
+      }
+    }
+    return items
+  }, [])
 
   return (
     <div
-      ref={overlayRef}
       aria-hidden="true"
-      className="fixed inset-0 z-[9998] pointer-events-none select-none"
-    />
+      className="fixed inset-0 pointer-events-none select-none overflow-hidden"
+      style={{ zIndex: 9998 }}
+    >
+      {tiles.map(({ key, top, left }) => (
+        <div
+          key={key}
+          style={{
+            position: 'absolute',
+            top,
+            left,
+            transform: 'rotate(-25deg)',
+            opacity: 0.12,
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+            lineHeight: 1.6,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              fontSize: '11.5px',
+              fontWeight: 700,
+              fontFamily: '"SF Mono", "Fira Code", "Consolas", monospace',
+              letterSpacing: '0.04em',
+              color: '#1E2F52',
+            }}
+          >
+            {email}
+          </p>
+          <p
+            style={{
+              margin: 0,
+              fontSize: '10px',
+              fontWeight: 600,
+              fontFamily: '"SF Mono", "Fira Code", "Consolas", monospace',
+              letterSpacing: '0.08em',
+              color: '#1E2F52',
+            }}
+          >
+            ai-traffic.kr
+          </p>
+        </div>
+      ))}
+    </div>
   )
 }
