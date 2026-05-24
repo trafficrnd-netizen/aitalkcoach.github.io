@@ -11,15 +11,19 @@ const MAX_EMAILS_PER_BATCH = 10
 
 /**
  * 친구 초대 이메일 발송 — 최대 10명
+ * inviteeRole: 초대받는 사람이 가입할 역할 (필수)
  */
 export async function sendInviteEmails(
-  emailsRaw: string[]
+  emailsRaw: string[],
+  inviteeRole: 'researcher' | 'supplier'
 ): Promise<{ success?: true; sent?: number; error?: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: '로그인이 필요합니다.' }
 
-  const role: Role = user.user_metadata?.user_type === 'supplier' ? 'supplier' : 'researcher'
+  if (!inviteeRole) return { error: '초대 대상의 역할을 선택해주세요.' }
+
+  const inviterRole: Role = user.user_metadata?.user_type === 'supplier' ? 'supplier' : 'researcher'
 
   // 이메일 정제·검증
   const emails = Array.from(
@@ -37,12 +41,12 @@ export async function sendInviteEmails(
     return { error: '본인 이메일은 초대할 수 없습니다.' }
   }
 
-  const code = await getOrCreateReferralCode(user.id, role)
+  const code = await getOrCreateReferralCode(user.id, inviterRole)
   if (!code) return { error: '초대 코드 생성에 실패했습니다. 잠시 후 다시 시도해주세요.' }
 
-  const signupPath = role === 'supplier' ? '/signup/supplier' : '/signup/researcher'
+  const signupPath = inviteeRole === 'supplier' ? '/signup/supplier' : '/signup/researcher'
   const inviteUrl = `https://ai-traffic.kr${signupPath}?ref=${code}`
-  const roleLabel = role === 'supplier' ? '공급자' : '연구자'
+  const inviteeRoleLabel = inviteeRole === 'supplier' ? '공급자' : '연구자'
 
   const admin = createAdminClient()
   let sent = 0
@@ -52,12 +56,12 @@ export async function sendInviteEmails(
       await resend.emails.send({
         from: FROM_EMAIL,
         to: email,
-        subject: '[ai-traffic.kr] 연구물품 견적 플랫폼에 초대합니다',
+        subject: `[ai-traffic.kr] ${inviteeRoleLabel}로 연구물품 견적 플랫폼에 초대합니다`,
         html: `
           <div style="font-family:-apple-system,BlinkMacSystemFont,sans-serif;max-width:480px;margin:0 auto;padding:32px;color:#1A2236;">
             <h2 style="color:#1E2F52;margin-bottom:12px;font-size:20px;">ai-traffic.kr 초대장</h2>
             <p style="font-size:14px;line-height:1.6;color:#2A3247;">
-              동료가 회원님을 <strong>${roleLabel}</strong>로 ai-traffic.kr에 초대했습니다.
+              동료가 회원님을 <strong style="color:#1E2F52;">${inviteeRoleLabel}</strong>로 ai-traffic.kr에 초대했습니다.
             </p>
             <p style="font-size:14px;line-height:1.6;color:#2A3247;">
               ai-traffic.kr은 시약·소모품·장비를 역경매 방식으로 조달하는 B2B 플랫폼입니다.
@@ -65,7 +69,7 @@ export async function sendInviteEmails(
             </p>
             <a href="${inviteUrl}"
                style="display:inline-block;background:#F4A261;color:#1A2236;padding:13px 28px;border-radius:8px;text-decoration:none;font-weight:600;margin:20px 0;">
-              초대 수락하고 가입하기 →
+              ${inviteeRoleLabel}로 가입하기 →
             </a>
             <p style="font-size:12px;color:#6b7280;margin-top:8px;">
               초대 코드: <strong>${code}</strong>
@@ -76,13 +80,14 @@ export async function sendInviteEmails(
         `,
       })
 
-      // referrals 기록 (sent)
+      // referrals 기록 (sent) — invitee_role 포함
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (admin as any).from('referrals').insert({
         inviter_id: user.id,
-        inviter_role: role,
+        inviter_role: inviterRole,
         code,
         invitee_email: email,
+        invitee_role: inviteeRole,
         status: 'sent',
       })
       sent++

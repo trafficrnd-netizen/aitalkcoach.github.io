@@ -13,18 +13,15 @@ export default async function SupplierInvitePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: referrals } = await (supabase as any)
     .from('referrals')
-    .select('id, invitee_email, status, created_at, joined_at')
+    .select('id, invitee_email, invitee_role, status, created_at, joined_at')
     .eq('inviter_id', user.id)
     .order('created_at', { ascending: false })
     .limit(50)
 
-  const inviteLink = `https://ai-traffic.kr/signup/supplier?ref=${code}`
-
   return (
     <InviteView
       code={code}
-      inviteLink={inviteLink}
-      rewardPoints={5}
+      rewardPoints={3}
       referrals={(referrals ?? []) as ReferralRow[]}
     />
   )
