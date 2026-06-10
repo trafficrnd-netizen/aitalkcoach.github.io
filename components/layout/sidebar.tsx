@@ -86,8 +86,8 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
     <>
       {/* Header */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
-        <Link href="/" className="text-lg font-bold text-primary">
-          BidVibe
+        <Link href="/" className="flex items-center">
+          <img src="/logo.svg" alt="BidVibe" className="h-7 w-auto" />
         </Link>
         <button
           className="md:hidden rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -197,8 +197,8 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <Link href="/" className="text-lg font-bold text-primary">
-          BidVibe
+        <Link href="/" className="flex items-center">
+          <img src="/logo.svg" alt="BidVibe" className="h-7 w-auto" />
         </Link>
       </div>
 

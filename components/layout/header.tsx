@@ -33,7 +33,7 @@ export function Header({ user }: { user?: HeaderUser | null }) {
       <div className="container flex h-16 items-center justify-between gap-2 px-4">
         <div className="flex items-center gap-8 shrink-0">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold text-primary">BidVibe</span>
+            <img src="/logo.svg" alt="BidVibe" className="h-8 w-auto" />
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link

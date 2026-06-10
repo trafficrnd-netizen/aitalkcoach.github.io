@@ -9,8 +9,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <LanguageToggle />
       </div>
 
-      <Link href="/" className="mb-8 text-2xl font-bold text-primary">
-        BidVibe
+      <Link href="/" className="mb-8 flex items-center">
+        <img src="/logo.svg" alt="BidVibe" className="h-10 w-auto" />
       </Link>
       {children}
     </div>
