@@ -24,6 +24,7 @@ export type EquipmentSubType =
   | 'cold_storage'
   | 'organoid'
   | 'animal_experiment'
+  | 'pretreatment'
   | 'other'
 
 export const EQUIPMENT_SUB_TYPE_LABELS: Record<EquipmentSubType, string> = {
@@ -36,6 +37,7 @@ export const EQUIPMENT_SUB_TYPE_LABELS: Record<EquipmentSubType, string> = {
   cold_storage: '저온·보관 장비',
   organoid: '오가노이드 장비',
   animal_experiment: '동물실험 장비',
+  pretreatment: '전처리장비',
   other: '기타 분석 장비',
 }
 
@@ -366,6 +368,40 @@ export const EQUIPMENT_SPEC_FIELDS: Record<EquipmentSubType, SpecField[]> = {
         { value: 'na', label: '해당 없음' },
       ],
     },
+  ],
+
+  pretreatment: [
+    {
+      key: 'device_type', label: '전처리 장비 유형', fieldType: 'select', required: true,
+      options: [
+        { value: 'homogenize', label: '분쇄·균질화 (Homogenizer/Mill)' },
+        { value: 'extraction', label: '추출·정제 (SPE/LLE/ASE)' },
+        { value: 'digestion', label: '소화·분해 (Microwave/Hot Block Digester)' },
+        { value: 'concentration', label: '농축·증발 (N₂ Evaporator/Rotary Evaporator)' },
+        { value: 'filtration', label: '여과·정제 보조 (Vacuum Filtration/UF)' },
+        { value: 'automation', label: '보조·자동화 (Shaker/Vortex/Liquid Handler)' },
+      ],
+    },
+    {
+      key: 'sample_type', label: '처리 시료 유형', fieldType: 'multiselect',
+      options: [
+        { value: 'solid', label: '고체 시료' },
+        { value: 'liquid', label: '액체 시료' },
+        { value: 'biological', label: '생물 시료 (조직/세포)' },
+        { value: 'environmental', label: '환경 시료 (토양/수질)' },
+        { value: 'food', label: '식품 시료' },
+      ],
+    },
+    {
+      key: 'automation_level', label: '자동화 수준', fieldType: 'select',
+      options: [
+        { value: 'manual', label: '수동' },
+        { value: 'semi', label: '반자동' },
+        { value: 'auto', label: '완전자동' },
+      ],
+    },
+    { key: 'throughput', label: '처리량 (동시 샘플 수)', fieldType: 'number', unit: '개' },
+    { key: 'max_temp', label: '최대 온도', fieldType: 'number', unit: '°C' },
   ],
 
   other: [
