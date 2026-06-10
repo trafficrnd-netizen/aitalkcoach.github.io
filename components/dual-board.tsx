@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { FileText, Megaphone, Clock, MapPin } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CategorySearch, type SearchFilter } from '@/components/category-search'
+import { useI18n } from '@/lib/i18n/context'
 
 export type BoardRequest = {
   id: string
@@ -44,16 +45,18 @@ function daysLeft(dateStr: string): number {
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
 }
 
-function DeadlineBadge({ dateStr }: { dateStr: string }) {
+function DeadlineBadge({ dateStr, t, locale }: { dateStr: string; t: (k: string) => string; locale: string }) {
   const days = daysLeft(dateStr)
-  if (days < 0) return <Badge variant="outline" className="text-xs text-muted-foreground">마감됨</Badge>
-  if (days === 0) return <Badge className="text-xs bg-destructive">오늘 마감</Badge>
-  if (days <= 2) return <Badge className="text-xs bg-orange-500">{days}일 남음</Badge>
-  if (days <= 7) return <Badge variant="secondary" className="text-xs">{days}일 남음</Badge>
-  return <Badge variant="outline" className="text-xs">{new Date(dateStr).toLocaleDateString('ko-KR')}</Badge>
+  if (days < 0) return <Badge variant="outline" className="text-xs text-muted-foreground">{t('bd.deadlineClosed')}</Badge>
+  if (days === 0) return <Badge className="text-xs bg-destructive">{t('bd.deadlineToday')}</Badge>
+  if (days <= 2) return <Badge className="text-xs bg-orange-500">{t('bd.daysLeft').replace('{n}', String(days))}</Badge>
+  if (days <= 7) return <Badge variant="secondary" className="text-xs">{t('bd.daysLeft').replace('{n}', String(days))}</Badge>
+  return <Badge variant="outline" className="text-xs">{new Date(dateStr).toLocaleDateString(locale)}</Badge>
 }
 
 export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : 'ko-KR'
   const [filter, setFilter] = useState<SearchFilter>({ text: '', category: null })
 
   const requestHref = role === 'supplier' ? '/supplier/marketplace' : '/researcher/requests'
@@ -85,7 +88,7 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
       {role === 'researcher' && (
         <CategorySearch
           onFilterChange={setFilter}
-          placeholder="품목명·카테고리로 요청 검색..."
+          placeholder={t('bd.searchPh')}
         />
       )}
 
@@ -95,13 +98,13 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-bold">요청 게시판</h2>
+              <h2 className="text-lg font-bold">{t('bd.requests')}</h2>
               <Badge variant="secondary" className="text-xs">
                 {isFiltered ? `${filteredRequests.length} / ${requests.length}` : requests.length}
               </Badge>
             </div>
             <Link href={requestHref} className="text-xs text-primary hover:underline">
-              전체 보기 →
+              {t('bd.viewAll')}
             </Link>
           </div>
 
@@ -110,14 +113,14 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
               href="/researcher/request"
               className={cn(buttonVariants({ size: 'sm' }), 'mb-3 w-full justify-center')}
             >
-              + 새 견적 요청
+              {t('bd.newRequest')}
             </Link>
           )}
 
           <div className="flex flex-col gap-2">
             {filteredRequests.length === 0 && (
               <div className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-                {isFiltered ? '검색 결과가 없습니다.' : '현재 공개된 요청이 없습니다.'}
+                {isFiltered ? t('bd.noSearchResult') : t('bd.noOpenRequests')}
               </div>
             )}
             {filteredRequests.map(req => {
@@ -134,9 +137,9 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                        <span className="font-medium text-sm truncate">{req.title ?? '(제목 없음)'}</span>
+                        <span className="font-medium text-sm truncate">{req.title ?? t('dash.noTitle')}</span>
                         {req.type === 'batch' && (
-                          <Badge variant="outline" className="text-[10px] py-0">묶음 {req.item_count}종</Badge>
+                          <Badge variant="outline" className="text-[10px] py-0">{t('bd.batchN').replace('{n}', String(req.item_count))}</Badge>
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
@@ -145,12 +148,12 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
                             <MapPin className="h-3 w-3" />{req.delivery_address.slice(0, 10)}
                           </span>
                         )}
-                        <span>입찰 {req.bid_count}건</span>
+                        <span>{t('bd.bidsN').replace('{n}', String(req.bid_count))}</span>
                       </div>
                     </div>
                     <div className="shrink-0">
-                      {req.deadline ? <DeadlineBadge dateStr={req.deadline} /> : (
-                        <Badge variant="outline" className="text-xs">기한 없음</Badge>
+                      {req.deadline ? <DeadlineBadge dateStr={req.deadline} t={t} locale={locale} /> : (
+                        <Badge variant="outline" className="text-xs">{t('bd.noDeadline')}</Badge>
                       )}
                     </div>
                   </div>
@@ -165,12 +168,12 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Megaphone className="h-5 w-5 text-amber-500" />
-              <h2 className="text-lg font-bold">공급자 광고판</h2>
+              <h2 className="text-lg font-bold">{t('bd.ads')}</h2>
               <Badge variant="secondary" className="text-xs">{ads.length}</Badge>
             </div>
             {role === 'supplier' && (
               <Link href="/supplier/ads/new" className="text-xs text-amber-600 hover:underline">
-                + 광고 등록
+                {t('bd.newAd')}
               </Link>
             )}
           </div>
@@ -183,14 +186,14 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
                 'mb-3 w-full justify-center border-amber-200 text-amber-700 hover:bg-amber-50'
               )}
             >
-              + 광고 등록하기
+              {t('bd.newAdCta')}
             </Link>
           )}
 
           <div className="flex flex-col gap-2">
             {!ads.length && (
               <div className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
-                {role === 'supplier' ? '광고를 등록해 연구자에게 알리세요.' : '등록된 공급자 광고가 없습니다.'}
+                {role === 'supplier' ? t('bd.adEmptySupplier') : t('bd.adEmptyResearcher')}
               </div>
             )}
             {ads.map(ad => {
@@ -207,7 +210,7 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                        {isMine && <Badge className="text-[10px] bg-amber-500 py-0">내 광고</Badge>}
+                        {isMine && <Badge className="text-[10px] bg-amber-500 py-0">{t('bd.myAd')}</Badge>}
                         <span className="font-medium text-sm">{ad.company_name}</span>
                       </div>
                       <p className="text-sm font-medium mb-1">{ad.title}</p>
@@ -231,12 +234,12 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
                     <div className="shrink-0 text-right">
                       <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="h-3 w-3" />
-                        {days <= 0 ? '만료됨' : days <= 3 ? <span className="text-orange-500 font-medium">{days}일 남음</span> : `${days}일`}
+                        {days <= 0 ? t('bd.expired') : days <= 3 ? <span className="text-orange-500 font-medium">{t('bd.daysLeft').replace('{n}', String(days))}</span> : t('bd.daysSuffix').replace('{n}', String(days))}
                       </div>
                       {isMine && (
                         <form action={`/supplier/ads/${ad.id}/delete`} method="POST" className="mt-1">
                           <button type="submit" className="text-[10px] text-muted-foreground hover:text-destructive underline">
-                            삭제
+                            {t('bd.delete')}
                           </button>
                         </form>
                       )}

@@ -133,10 +133,22 @@ export async function signupSupplier(formData: FormData) {
   const hazmatLicenseNo = (formData.get('hazmatLicenseNo') as string) || null
   const referralCode = ((formData.get('referralCode') as string) || '').trim()
 
-  if (!contactPhone) return { error: '담당자 휴대폰 본인인증을 완료해주세요.' }
+  // 국내/해외 구분 + 해외 전용 필드
+  const origin = (formData.get('origin') as string) === 'overseas' ? 'overseas' : 'domestic'
+  const overseasSupplyType = (formData.get('overseasSupplyType') as string) || null  // 'chemical' | 'equipment'
+  const country = (formData.get('country') as string) || null
+  const orType = (formData.get('orType') as string) || null
+  const orCompanyName = (formData.get('orCompanyName') as string) || null
+  const orBusinessNumber = ((formData.get('orBusinessNumber') as string) || '').replace(/-/g, '') || null
+  const equipmentHasChemicals = formData.get('equipmentHasChemicals') === 'true'
+  const kcCertAcknowledged = formData.get('kcCertAcknowledged') === 'true'
 
-  const verified = await checkPhoneVerified(contactPhone)
-  if (!verified) return { error: '휴대폰 인증이 만료되었습니다. 다시 인증해주세요.' }
+  // 전화 인증: 국내는 한국 SMS OTP 필수, 해외는 일반 연락처 허용
+  if (origin === 'domestic') {
+    if (!contactPhone) return { error: '담당자 휴대폰 본인인증을 완료해주세요.' }
+    const verified = await checkPhoneVerified(contactPhone)
+    if (!verified) return { error: '휴대폰 인증이 만료되었습니다. 다시 인증해주세요.' }
+  }
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -172,12 +184,26 @@ export async function signupSupplier(formData: FormData) {
     handles_hazmat: handlesHazmat,
     hazmat_license_no: hazmatLicenseNo,
     contact_name: contactName,
-    contact_phone: contactPhone,
+    contact_phone: contactPhone || null,
   }
+  // 해외 공급자 필드 추가 (타입 정의에 없을 수 있으므로 별도 병합)
+  const overseasFields = origin === 'overseas'
+    ? {
+        origin,
+        overseas_supply_type: overseasSupplyType,
+        country,
+        or_type: orType,
+        or_company_name: orCompanyName,
+        or_business_number: orBusinessNumber,
+        equipment_has_chemicals: equipmentHasChemicals,
+        kc_cert_acknowledged: kcCertAcknowledged,
+      }
+    : { origin }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: profileError } = await (admin as any)
     .from('supplier_profiles')
-    .insert(profileData)
+    .insert({ ...profileData, ...overseasFields })
 
   if (profileError) {
     if (profileError.message.includes('unique') && profileError.message.includes('contact_phone')) {
@@ -195,8 +221,10 @@ export async function signupSupplier(formData: FormData) {
     }
   }
 
-  // Consume the verified flag
-  await redis.del(`otp:verified:${contactPhone}`)
+  // Consume the verified flag (국내 OTP만)
+  if (origin === 'domestic' && contactPhone) {
+    await redis.del(`otp:verified:${contactPhone}`)
+  }
 
   return { emailPending: true, email }
 }

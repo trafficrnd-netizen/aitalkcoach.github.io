@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { resend, FROM_EMAIL } from '@/lib/resend'
 import { awardCredits } from '@/lib/credits'
+import { recordTransactionToCatalog } from '@/lib/actions/supplier-catalog'
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function acceptBid(bidId: string, requestId: string, _formData: FormData) {
@@ -24,7 +25,7 @@ export async function acceptBid(bidId: string, requestId: string, _formData: For
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: bid } = await (supabase as any)
     .from('bids')
-    .select('id, supplier_id')
+    .select('id, supplier_id, demo_days')
     .eq('id', bidId)
     .eq('request_id', requestId)
     .single()
@@ -32,6 +33,14 @@ export async function acceptBid(bidId: string, requestId: string, _formData: For
 
   // 자전거래 방지 — 본인이 제출한 입찰은 낙찰할 수 없음 (방어적 검증)
   if (bid.supplier_id === user.id) redirect(`/researcher/requests/${requestId}`)
+
+  // 탈락 대상 입찰들의 supplier_id 미리 확보 (알림용)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: losingBids } = await (supabase as any)
+    .from('bids')
+    .select('supplier_id')
+    .eq('request_id', requestId)
+    .neq('id', bidId)
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase as any).from('bids').update({ status: 'accepted' }).eq('id', bidId)
@@ -45,12 +54,28 @@ export async function acceptBid(bidId: string, requestId: string, _formData: For
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase as any).from('requests').update({ status: 'closed' }).eq('id', requestId)
 
+  // 평가/거래 만료 기한 = 낙찰일 + 데모기간 + 기본 평가창(14일)
+  const demoDays = Number(bid.demo_days) || 0
+  const reviewDeadline = new Date(Date.now() + (demoDays + 14) * 24 * 60 * 60 * 1000).toISOString()
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase as any)
     .from('transactions')
-    .insert({ request_id: requestId, bid_id: bidId, status: 'in_progress' })
+    .insert({
+      request_id: requestId,
+      bid_id: bidId,
+      status: 'in_progress',
+      demo_days: demoDays,
+      review_deadline: reviewDeadline,
+    })
 
   notifyBidAccepted(bid.supplier_id, request.title).catch(console.error)
+
+  // 탈락 공급사에게 정중한 미선정 알림 (재참여 유도)
+  const losingIds = Array.from(new Set((losingBids ?? []).map((b: { supplier_id: string }) => b.supplier_id)))
+  if (losingIds.length > 0) {
+    notifyBidsRejected(losingIds as string[], request.title).catch(console.error)
+  }
 
   redirect(`/researcher/requests/${requestId}`)
 }
@@ -106,6 +131,11 @@ export async function completeTransaction(formData: FormData) {
   } catch (e) {
     console.error('[completeTransaction] 크레딧 적립 실패:', e)
   }
+
+  // 공급자 카탈로그 누적 (실패해도 거래 완료는 정상 처리)
+  recordTransactionToCatalog(transactionId).catch((e) =>
+    console.error('[completeTransaction] 카탈로그 누적 실패:', e)
+  )
 
   redirect(`/researcher/transactions/${transactionId}/review?reviewee=${bid?.supplier_id ?? ''}`)
 }
@@ -164,6 +194,31 @@ export async function submitReview(formData: FormData) {
     }
   }
 
+  // 데모·샘플 피드백 보너스 (2점) — 입찰이 데모 또는 샘플을 제공한 경우
+  if (reviewerRole === 'researcher') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: txWithBid } = await (supabase as any)
+        .from('transactions')
+        .select('bid_id')
+        .eq('id', transactionId)
+        .single()
+      if (txWithBid?.bid_id) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: bid } = await (supabase as any)
+          .from('bids')
+          .select('demo_available, sample_available')
+          .eq('id', txWithBid.bid_id)
+          .single()
+        if (bid?.demo_available === true || bid?.sample_available === true) {
+          await awardCredits(user.id, 'researcher_demo_sample_feedback', 'researcher', 'reviews', transactionId)
+        }
+      }
+    } catch (e) {
+      console.error('[submitReview] 데모/샘플 피드백 크레딧 적립 실패:', e)
+    }
+  }
+
   // 공급자: 평점 4점 이상 받으면 크레딧 적립 (★★★★+)
   if (score >= 4 && revieweeId && reviewerRole === 'researcher') {
     try {
@@ -202,4 +257,37 @@ async function notifyBidAccepted(supplierId: string, requestTitle: string) {
       </div>
     `,
   })
+}
+
+/** 탈락 공급사들에게 정중한 미선정 알림 (재참여 유도) */
+async function notifyBidsRejected(supplierIds: string[], requestTitle: string) {
+  const admin = createAdminClient()
+  for (const supplierId of supplierIds) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: usr } = await (admin as any).auth.admin.getUserById(supplierId)
+      const email = usr?.user?.email
+      if (!email) continue
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profile } = await (admin as any)
+        .from('supplier_profiles').select('company_name').eq('user_id', supplierId).single()
+
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: email,
+        subject: `[ai-traffic.kr] 견적 결과 안내 — "${requestTitle}"`,
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
+            <h2 style="color:#1E2F52;margin-bottom:8px;">견적 결과 안내</h2>
+            <p>${profile?.company_name ?? '공급자'}님, 아쉽게도 <strong>"${requestTitle}"</strong> 요청에서는 이번에 선정되지 않았습니다.</p>
+            <p style="color:#6b7280;">참여해 주셔서 감사합니다. 빠른 응답과 경쟁력 있는 조건은 다음 기회의 낙찰 확률을 높입니다.</p>
+            <a href="https://ai-traffic.kr/supplier/marketplace" style="display:inline-block;background:#F4A261;color:#1A2236;padding:12px 24px;border-radius:8px;text-decoration:none;margin-top:16px;font-weight:600;">새로운 견적 요청 보기 →</a>
+            <p style="font-size:11px;color:#9ca3af;margin-top:20px;">ai-traffic.kr · 연구물품 통합 견적 플랫폼</p>
+          </div>
+        `,
+      })
+    } catch (e) {
+      console.error('[notifyBidsRejected] 발송 실패:', supplierId, e)
+    }
+  }
 }

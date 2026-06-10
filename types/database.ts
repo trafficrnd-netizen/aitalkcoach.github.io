@@ -145,6 +145,13 @@ export interface Database {
           memo: string | null
           status: BidStatus
           created_at: string
+          quote_file_path: string | null
+          quote_file_name: string | null
+          quote_file_size: number | null
+          quote_downloaded_at: string | null
+          quote_last_downloaded_at: string | null
+          quote_download_count: number
+          quote_deleted_at: string | null
         }
         Insert: {
           id?: string
@@ -156,6 +163,13 @@ export interface Database {
           memo?: string | null
           status?: BidStatus
           created_at?: string
+          quote_file_path?: string | null
+          quote_file_name?: string | null
+          quote_file_size?: number | null
+          quote_downloaded_at?: string | null
+          quote_last_downloaded_at?: string | null
+          quote_download_count?: number
+          quote_deleted_at?: string | null
         }
         Update: Partial<Database['public']['Tables']['bids']['Insert']>
       }

@@ -1,5 +1,6 @@
 import { Sidebar } from '@/components/layout/sidebar'
 import { Watermark } from '@/components/layout/watermark'
+import { RecordAttribution } from '@/components/landing/record-attribution'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function SupplierLayout({
@@ -35,6 +36,7 @@ export default async function SupplierLayout({
         <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
       {email && <Watermark email={email} />}
+      <RecordAttribution role="supplier" />
     </div>
   )
 }

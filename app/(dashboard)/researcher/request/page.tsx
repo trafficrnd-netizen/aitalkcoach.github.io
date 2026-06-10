@@ -14,6 +14,8 @@ import { AddressSearch } from '@/components/address-search'
 import { PROTEIN_KEYWORDS, PROTEIN_GENERAL_KEYWORDS } from '@/lib/protein-keywords'
 import type { SupplyTopType } from '@/lib/supply-keywords'
 import { createSingleRequest } from '@/lib/actions/request'
+import { PreferredSupplierPicker, type RoutingMode } from '@/components/preferred-supplier-picker'
+import { PAYMENT_TERMS, paymentTermLabel, type PaymentTermValue } from '@/lib/payment-terms'
 import type { SubstanceResult } from '@/app/api/substances/search/route'
 import type { ItemType } from '@/lib/categories'
 import type { EquipmentSubType } from '@/lib/equipment-specs'
@@ -88,6 +90,15 @@ export default function SingleRequestPage() {
   const [supplyTopType, setSupplyTopType] = useState<SupplyTopType | ''>('')
   const [supplySubCode, setSupplySubCode] = useState('')
 
+  // 단골 공급자 라우팅 + 쿠폰
+  const [routing, setRouting] = useState<{ mode: RoutingMode; supplierCode: string | null; couponId: string | null }>({
+    mode: 'open', supplierCode: null, couponId: null,
+  })
+
+  // 도시(대리점 권역) + 결제조건
+  const [deliveryCity, setDeliveryCity] = useState('')
+  const [paymentTerms, setPaymentTerms] = useState<PaymentTermValue | ''>('')
+
   function setSpecField(key: string, value: string) {
     setEquipSpecs(prev => ({ ...prev, [key]: value }))
   }
@@ -160,6 +171,14 @@ export default function SingleRequestPage() {
       setError('기간 마감형은 입찰 마감일을 입력해주세요.')
       return
     }
+    if (!deliveryCity.trim()) {
+      setError('배송 도시명을 입력해주세요. (대리점 권역 매칭에 필요합니다)')
+      return
+    }
+    if (!paymentTerms) {
+      setError('결제조건을 선택해주세요.')
+      return
+    }
     setStep('preview')
   }
 
@@ -171,6 +190,15 @@ export default function SingleRequestPage() {
     Object.entries(form).forEach(([k, v]) => fd.append(k, v))
     fd.set('bidMode', bidMode)
     fd.set('itemType', itemType)
+    fd.set('deliveryCity', deliveryCity.trim())
+    fd.set('paymentTerms', paymentTerms)
+
+    // 단골 공급자 라우팅 + 쿠폰 (mode: open이면 미전송)
+    if (routing.mode !== 'open' && routing.supplierCode) {
+      fd.set('supplierCode', routing.supplierCode)
+      fd.set('routingMode', routing.mode)  // 'direct' | 'both'
+      if (routing.couponId) fd.set('couponId', routing.couponId)
+    }
 
     if (itemType === 'protein') {
       fd.set('itemSubType', proteinSubCat)
@@ -264,6 +292,8 @@ export default function SingleRequestPage() {
             />
           )}
           {form.deliveryAddress && <PreviewRow label="배송지" value={form.deliveryAddress} />}
+          {deliveryCity && <PreviewRow label="배송 도시 (권역)" value={deliveryCity} />}
+          {paymentTerms && <PreviewRow label="결제조건" value={paymentTermLabel(paymentTerms)} />}
           {form.notes && <PreviewRow label="추가 요청사항" value={form.notes} />}
         </div>
 
@@ -508,12 +538,54 @@ export default function SingleRequestPage() {
           )}
         </div>
 
+        {/* 단골 공급자 직접/공개/동시 + 쿠폰 (팔로우 공급자 있을 때만 노출) */}
+        <PreferredSupplierPicker onChange={setRouting} />
+
         <AddressSearch
           id="deliveryAddress"
           label="배송지"
           value={form.deliveryAddress}
           onChange={v => setForm(prev => ({ ...prev, deliveryAddress: v }))}
+          onCityChange={setDeliveryCity}
         />
+
+        {/* 배송 도시 (대리점 권역) — 필수 */}
+        <div className="space-y-2">
+          <Label htmlFor="deliveryCity">
+            배송 도시 <span className="text-destructive">*</span>
+            <span className="ml-1 text-xs font-normal text-muted-foreground">(대리점 권역 매칭)</span>
+          </Label>
+          <Input
+            id="deliveryCity"
+            value={deliveryCity}
+            onChange={e => setDeliveryCity(e.target.value)}
+            placeholder="예: 서울특별시 관악구"
+            required
+          />
+          <p className="text-xs text-muted-foreground">주소 검색 시 자동 입력됩니다. 권역 대리점이 견적 가능 여부를 빠르게 판단할 수 있습니다.</p>
+        </div>
+
+        {/* 결제조건 — 연구자 선택 (공급자 신뢰도 판단) */}
+        <div className="space-y-2">
+          <Label>결제조건 <span className="text-destructive">*</span></Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {PAYMENT_TERMS.map(t => (
+              <button
+                type="button"
+                key={t.value}
+                onClick={() => setPaymentTerms(t.value)}
+                className={cn(
+                  'rounded-md border p-2.5 text-left transition',
+                  paymentTerms === t.value ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:bg-muted/50'
+                )}
+              >
+                <div className="text-sm font-semibold">{t.label}</div>
+                <div className="text-[11px] text-muted-foreground">{t.desc}</div>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">투명한 결제조건은 공급사의 신뢰와 견적 참여를 높입니다.</p>
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="notes">추가 요청사항</Label>

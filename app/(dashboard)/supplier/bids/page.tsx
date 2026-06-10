@@ -3,13 +3,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { ClipboardList, FileCheck, MapPin } from 'lucide-react'
-
-const BID_STATUS_LABEL: Record<string, string> = {
-  pending: '검토 중',
-  accepted: '낙찰',
-  rejected: '미선택',
-  expired: '만료',
-}
+import { getServerT, getServerLang } from '@/lib/i18n/server'
 
 const BID_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
   pending: 'secondary',
@@ -19,6 +13,15 @@ const BID_STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = 
 }
 
 export default async function MyBidsPage() {
+  const t = getServerT()
+  const lang = getServerLang()
+  const locale = lang === 'en' ? 'en-US' : 'ko-KR'
+  const BID_STATUS_LABEL: Record<string, string> = {
+    pending: t('dash.bidStatus.pending'),
+    accepted: t('dash.bidStatus.accepted'),
+    rejected: t('dash.bidStatus.rejected'),
+    expired: t('dash.bidStatus.expired'),
+  }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -134,14 +137,14 @@ export default async function MyBidsPage() {
       <div className="flex items-center gap-3 mb-6">
         <ClipboardList className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">내 입찰 현황</h1>
-          <p className="text-sm text-muted-foreground">제출한 견적과 낙찰 결과를 확인합니다</p>
+          <h1 className="text-2xl font-bold">{t('dash.myBidsTitle')}</h1>
+          <p className="text-sm text-muted-foreground">{t('bids.subtitle')}</p>
         </div>
       </div>
 
       {!bids?.length ? (
         <div className="rounded-xl border border-dashed border-border py-20 text-center text-muted-foreground">
-          아직 입찰한 요청이 없습니다. 입찰 광장에서 요청을 찾아보세요.
+          {t('bids.empty')}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -158,23 +161,23 @@ export default async function MyBidsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="font-semibold truncate">{req?.title ?? '(삭제된 요청)'}</span>
+                      <span className="font-semibold truncate">{req?.title ?? t('bids.deletedRequest')}</span>
                       {bid.is_partial && (
-                        <Badge variant="outline" className="text-xs">부분견적</Badge>
+                        <Badge variant="outline" className="text-xs">{t('bids.partial')}</Badge>
                       )}
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                       {total !== undefined && (
                         <span className="font-medium text-foreground">
-                          {total.toLocaleString()}원
+                          {total.toLocaleString()}{t('bids.currency')}
                         </span>
                       )}
-                      {bid.delivery_date && <span>납기 {bid.delivery_date}</span>}
-                      {req?.deadline && <span>요청 마감 {new Date(req.deadline).toLocaleDateString('ko-KR')}</span>}
-                      <span>입찰 {new Date(bid.created_at).toLocaleDateString('ko-KR')}</span>
+                      {bid.delivery_date && <span>{t('bids.deliveryDate')} {bid.delivery_date}</span>}
+                      {req?.deadline && <span>{t('bids.requestDeadline')} {new Date(req.deadline).toLocaleDateString(locale)}</span>}
+                      <span>{t('bids.bidDate')} {new Date(bid.created_at).toLocaleDateString(locale)}</span>
                     </div>
                     {bid.memo && (
-                      <p className="mt-1.5 text-xs text-muted-foreground line-clamp-1">메모: {bid.memo}</p>
+                      <p className="mt-1.5 text-xs text-muted-foreground line-clamp-1">{t('bids.memo')}: {bid.memo}</p>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
@@ -186,12 +189,12 @@ export default async function MyBidsPage() {
                         href={`/supplier/bids/${bid.id}/verify`}
                         className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 hover:bg-amber-200 transition-colors"
                       >
-                        <FileCheck className="h-3 w-3" /> 자료 제출 필요
+                        <FileCheck className="h-3 w-3" /> {t('bids.verifNeeded')}
                       </Link>
                     )}
                     {pendingVerifMap[bid.id] === 'submitted' && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-medium text-blue-600">
-                        <FileCheck className="h-3 w-3" /> 자료 검토 중
+                        <FileCheck className="h-3 w-3" /> {t('bids.verifInReview')}
                       </span>
                     )}
                   </div>
@@ -200,19 +203,19 @@ export default async function MyBidsPage() {
                 {bid.status === 'rejected' && winningTotalByRequest[bid.request_id] && (
                   <div className="mt-3 pt-3 border-t border-border">
                     <p className="text-xs text-muted-foreground">
-                      낙찰가{' '}
+                      {t('bids.winningPrice')}{' '}
                       <span className="font-semibold text-foreground">
-                        {winningTotalByRequest[bid.request_id].toLocaleString()}원
+                        {winningTotalByRequest[bid.request_id].toLocaleString()}{t('bids.currency')}
                       </span>
                       {bidTotalMap[bid.id] && (
                         <span className="ml-1.5">
-                          (내 견적 대비{' '}
+                          ({t('bids.vsMine')}{' '}
                           {bidTotalMap[bid.id] > winningTotalByRequest[bid.request_id] ? '+' : ''}
                           {Math.round((bidTotalMap[bid.id] - winningTotalByRequest[bid.request_id]) / winningTotalByRequest[bid.request_id] * 100)}%)
                         </span>
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">입찰 참여 공급자에게만 공개됩니다</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{t('bids.bidderOnly')}</p>
                   </div>
                 )}
 
@@ -224,34 +227,33 @@ export default async function MyBidsPage() {
                   const deliveryAddress = requestMap[bid.request_id]?.delivery_address
                   return (
                     <div className="mt-3 pt-3 border-t border-primary/20 space-y-2">
-                      {/* 낙찰 후 전체 배송지 공개 */}
                       {deliveryAddress && (
                         <div className="flex items-start gap-1.5 text-sm">
                           <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                           <div>
-                            <span className="text-xs text-muted-foreground mr-1">배송지</span>
+                            <span className="text-xs text-muted-foreground mr-1">{t('bids.deliveryAddress')}</span>
                             <span className="font-medium">{deliveryAddress}</span>
                           </div>
                         </div>
                       )}
                       {isCompleted ? (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-green-700 font-medium">✅ 거래 완료</span>
+                          <span className="text-sm text-green-700 font-medium">{t('bids.completed')}</span>
                           {needsReview && researcherId && tx && (
                             <Link
                               href={`/supplier/transactions/${tx.id}/review?reviewee=${researcherId}`}
                               className="text-xs text-primary underline font-medium"
                             >
-                              연구자 평가하기 →
+                              {t('bids.reviewResearcher')}
                             </Link>
                           )}
                           {!needsReview && (
-                            <span className="text-xs text-muted-foreground">평가 완료</span>
+                            <span className="text-xs text-muted-foreground">{t('bids.reviewDone')}</span>
                           )}
                         </div>
                       ) : (
                         <p className="text-sm text-primary font-medium">
-                          🎉 낙찰! 위 주소로 납품을 진행해주세요.
+                          {t('bids.wonNotice')}
                         </p>
                       )}
                     </div>

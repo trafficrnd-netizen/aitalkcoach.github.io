@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { submitSingleBid } from '@/lib/actions/bid'
 import { FileText } from 'lucide-react'
+import { BidConditionFields, type BidContext } from '@/components/bid-condition-fields'
 
 type Item = {
   id: string
@@ -19,9 +20,10 @@ type Item = {
 type Props = {
   requestId: string
   items: Item[]
+  bidContext: BidContext
 }
 
-export function SingleBidForm({ requestId, items }: Props) {
+export function SingleBidForm({ requestId, items, bidContext }: Props) {
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
 
@@ -85,9 +87,29 @@ export function SingleBidForm({ requestId, items }: Props) {
           <Input type="date" name="deliveryDate" min={today} className="max-w-xs" />
         </div>
 
+        {/* 조건 명시: 해외/장비 데모/시약 샘플 */}
+        <BidConditionFields ctx={bidContext} />
+
         <div>
           <label className="text-sm font-medium mb-1.5 block">메모 (선택)</label>
           <Input name="memo" placeholder="CoA 포함 여부, 냉장 배송 가능 여부 등" />
+        </div>
+
+        {/* 공급사 양식 견적서 PDF — 필수 */}
+        <div>
+          <label className="text-sm font-medium mb-1.5 block">
+            견적서 PDF (공급사 양식) <span className="text-destructive">*</span>
+          </label>
+          <Input
+            type="file"
+            name="quotePdf"
+            accept="application/pdf"
+            required
+            className="max-w-md cursor-pointer file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            자사 양식의 견적서를 PDF로 첨부해주세요. (10MB 이하) 연구자가 비교 단계에서 다운로드합니다.
+          </p>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}

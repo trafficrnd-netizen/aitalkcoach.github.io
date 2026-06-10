@@ -9,7 +9,11 @@ import { Badge }                      from '@/components/ui/badge'
 import { cancelRequest }              from '@/lib/actions/request'
 import { acceptBid }                  from '@/lib/actions/transaction'
 import { requestVerification, reviewVerification } from '@/lib/actions/bid-verification'
-import { ArrowLeft, CheckCircle2, Clock, FileCheck, FileSearch, FileMinus } from 'lucide-react'
+import { getGroupBuyPeers } from '@/lib/actions/group-buy'
+import { getCatalogForSubstance } from '@/lib/actions/supplier-catalog'
+import { GroupBuyBanner } from '@/components/group-buy-banner'
+import { CatalogSuppliers } from '@/components/catalog-suppliers'
+import { ArrowLeft, CheckCircle2, Clock, FileCheck, FileSearch, FileMinus, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -50,7 +54,8 @@ function VeriBadge({ status }: { status: string }) {
   return null
 }
 
-export default async function RequestDetailPage({ params }: { params: { id: string } }) {
+export default async function RequestDetailPage({ params, searchParams }: { params: { id: string }; searchParams?: { filter?: string } }) {
+  const filter = (searchParams?.filter as 'all' | 'tier' | 'fast' | 'safe' | undefined) ?? 'all'
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -72,23 +77,33 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
   const deadlinePassed = request.deadline ? new Date(request.deadline) < new Date() : false
   const showBids       = deadlinePassed || request.status === 'closed'
 
+  // 그룹 바이 + 카탈로그 — 첫 품목 기준 (대부분 단건 요청은 그대로, 묶음은 대표 품목 기준)
+  const firstItem = (items ?? [])[0] ?? null
+  const [groupBuyPeers, catalogSuppliers] = await Promise.all([
+    request.status === 'open' ? getGroupBuyPeers(params.id) : Promise.resolve(null),
+    firstItem ? getCatalogForSubstance({ cas: firstItem.cas_number, name: firstItem.substance_name }, 5) : Promise.resolve([]),
+  ])
+
   let bids:        any[]  = []
   let transaction: any    = null
   // eslint-disable-next-line prefer-const
-  let supplierMap:     Record<string, { company_name: string; plan: string; avg_score: number; review_count: number }> = {}
+  let supplierMap:     Record<string, { company_name: string; plan: string; avg_score: number; review_count: number; origin: string; country: string | null; overseas_supply_type: string | null; or_type: string | null; tier: string | null; fast_responder: boolean }> = {}
   // eslint-disable-next-line prefer-const
   let bidItemsMap:     Record<string, any[]> = {}
   // eslint-disable-next-line prefer-const
   let verificationMap: Record<string, { id: string; status: string; filePath: string | null; fileName: string | null; fileSize: number | null }> = {}
   // eslint-disable-next-line prefer-const
   let signedUrlMap:    Record<string, string> = {}
+  // 입찰 시 첨부된 공급사 양식 견적 PDF — 수락 전 비교 다운로드 + 24h 삭제 상태
+  // eslint-disable-next-line prefer-const
+  let quoteMap:        Record<string, { name: string | null; size: number | null; downloadedAt: string | null; deletedAt: string | null }> = {}
 
   if (showBids || request.status === 'closed') {
     // ── Round 3: bids · transaction — 2개 병렬 ──────────────────────────────
     const [bidsRes, txRes] = await Promise.all([
       showBids
         ? (supabase as any).from('bids')
-            .select('id, supplier_id, is_partial, delivery_date, memo, status, created_at')
+            .select('id, supplier_id, is_partial, delivery_date, memo, status, created_at, lead_time_days, customs_duty_included, cert_responsibility_ack, demo_available, demo_days, sample_available, conditions_note, quote_file_path, quote_file_name, quote_file_size, quote_downloaded_at, quote_last_downloaded_at, quote_download_count, quote_deleted_at')
             .eq('request_id', params.id)
             .order('created_at', { ascending: true })
         : Promise.resolve({ data: [] }),
@@ -109,7 +124,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
 
       // ── Round 4: profiles · reviews · bid_items · verifications — 4개 병렬 ──
       const [profilesRes, reviewsRes, bidItemsRes, verificationsRes] = await Promise.all([
-        (supabase as any).from('supplier_profiles').select('user_id, company_name, plan').in('user_id', supplierIds),
+        (supabase as any).from('supplier_profiles').select('user_id, company_name, plan, origin, country, overseas_supply_type, or_type, referral_tier').in('user_id', supplierIds),
         (supabase as any).from('reviews').select('reviewee_id, score').in('reviewee_id', supplierIds),
         (supabase as any).from('bid_items').select('bid_id, request_item_id, total_price, available').in('bid_id', bidIds),
         (supabase as any).from('bid_verifications')
@@ -124,6 +139,18 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
         reviewStats[r.reviewee_id].total += r.score
         reviewStats[r.reviewee_id].count += 1
       }
+      // 빠른응답 인증 — 공급자별 병렬 조회 (RPC)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fastResRes = await Promise.all(
+        (supplierIds as string[]).map((id) =>
+          (supabase as any).rpc('is_fast_responder', { p_supplier_id: id, p_days: 30 })
+        )
+      )
+      const fastResMap: Record<string, boolean> = {}
+      ;(supplierIds as string[]).forEach((id, i) => {
+        fastResMap[id] = fastResRes[i]?.data === true
+      })
+
       for (const p of (profilesRes.data ?? [])) {
         const stats = reviewStats[p.user_id]
         supplierMap[p.user_id] = {
@@ -131,6 +158,12 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
           plan:         p.plan,
           avg_score:    stats ? Math.round((stats.total / stats.count) * 10) / 10 : 0,
           review_count: stats?.count ?? 0,
+          origin:       p.origin ?? 'domestic',
+          country:      p.country ?? null,
+          overseas_supply_type: p.overseas_supply_type ?? null,
+          or_type:      p.or_type ?? null,
+          tier:         p.referral_tier ?? null,
+          fast_responder: !!fastResMap[p.user_id],
         }
       }
 
@@ -161,6 +194,18 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
           if (signed?.signedUrl) signedUrlMap[bidId] = signed.signedUrl
         }
       }
+
+      // 입찰 첨부 견적 PDF 상태 — 다운로드 라우트를 통해 그 자리에서 받고 24h 후 삭제
+      for (const b of bids) {
+        if (b.quote_file_path) {
+          quoteMap[b.id] = {
+            name:         b.quote_file_name ?? null,
+            size:         b.quote_file_size ?? null,
+            downloadedAt: b.quote_downloaded_at ?? null,
+            deletedAt:    b.quote_deleted_at ?? null,
+          }
+        }
+      }
     }
   }
 
@@ -170,7 +215,21 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
       .reduce((s: number, i: any) => s + (i.total_price ?? 0), 0)
   }
 
-  const sortedBids = [...bids].sort((a, b) => getBidTotal(a.id) - getBidTotal(b.id))
+  const sortedBidsAll = [...bids].sort((a, b) => getBidTotal(a.id) - getBidTotal(b.id))
+  function passFilter(b: any): boolean {
+    const s = supplierMap[b.supplier_id]
+    if (filter === 'tier') return !!s?.tier
+    if (filter === 'fast') return !!s?.fast_responder
+    if (filter === 'safe') return !!s?.tier && !!s?.fast_responder
+    return true
+  }
+  const sortedBids = filter === 'all' ? sortedBidsAll : sortedBidsAll.filter(passFilter)
+  const filterCounts = {
+    all:  sortedBidsAll.length,
+    tier: sortedBidsAll.filter(b => !!supplierMap[b.supplier_id]?.tier).length,
+    fast: sortedBidsAll.filter(b => !!supplierMap[b.supplier_id]?.fast_responder).length,
+    safe: sortedBidsAll.filter(b => !!supplierMap[b.supplier_id]?.tier && !!supplierMap[b.supplier_id]?.fast_responder).length,
+  }
 
   // 단건 모드: 각 입찰의 수락/자료요청 버튼 영역
   function BidActions({ bid, isAccepted }: { bid: any; isAccepted: boolean }) {
@@ -280,6 +339,48 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
     )
   }
 
+  // 입찰 첨부 견적 PDF — 비교용 다운로드 + 24시간 후 서버 자동 삭제 안내
+  function QuoteLink({ bidId }: { bidId: string }) {
+    const q = quoteMap[bidId]
+    if (!q) return null
+
+    const TTL = 24 * 60 * 60 * 1000
+    const downloadedMs = q.downloadedAt ? new Date(q.downloadedAt).getTime() : null
+    // 삭제됨 또는 다운로드 후 24시간 경과 → 다운로드 완료(서버 삭제)
+    const completed = !!q.deletedAt || (downloadedMs != null && Date.now() - downloadedMs > TTL)
+
+    if (completed) {
+      return (
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <FileCheck className="h-3.5 w-3.5 shrink-0 text-green-600" />
+          견적서 다운로드 완료 — 서버에서 삭제됨
+        </span>
+      )
+    }
+
+    const downloaded = downloadedMs != null
+    return (
+      <div className="space-y-1">
+        <a
+          href={`/api/researcher/quote/${bidId}`}
+          className="inline-flex items-center gap-1.5 text-xs text-primary underline underline-offset-2 hover:text-primary/80"
+        >
+          <FileText className="h-3.5 w-3.5 shrink-0" />
+          견적서 PDF 다운로드 (비교용)
+          {q.name && <span className="text-muted-foreground no-underline">— {q.name}</span>}
+          {q.size != null && (
+            <span className="text-muted-foreground no-underline">({(q.size / 1024).toFixed(0)} KB)</span>
+          )}
+        </a>
+        <p className="text-[11px] text-amber-600 [word-break:keep-all]">
+          {downloaded
+            ? '📥 다운로드됨 — 보안을 위해 다운로드 후 24시간이 지나면 서버에서 자동 삭제됩니다.'
+            : 'ℹ️ 비교용 견적서입니다. 다운로드 후 24시간 이내에 서버에서 자동 삭제됩니다.'}
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
@@ -312,6 +413,25 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
           highlight={Number(bidCount) > 0 && !showBids}
         />
       </section>
+
+      {/* 그룹 바이 안내 */}
+      {groupBuyPeers && groupBuyPeers.researcherCount > 0 && (
+        <section className="mb-4">
+          <GroupBuyBanner
+            researcherCount={groupBuyPeers.researcherCount}
+            requestCount={groupBuyPeers.requestCount}
+            totalQty={groupBuyPeers.totalQty}
+            unit={groupBuyPeers.unit}
+          />
+        </section>
+      )}
+
+      {/* 공급 이력 보유 공급자 */}
+      {catalogSuppliers.length > 0 && firstItem && (
+        <section className="mb-6">
+          <CatalogSuppliers suppliers={catalogSuppliers} substanceName={firstItem.substance_name} />
+        </section>
+      )}
 
       {/* 품목 목록 */}
       <section className="mb-6">
@@ -375,12 +495,39 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
       {/* 견적 비교 섹션 */}
       {showBids && (
         <section className="mb-6">
-          <h2 className="font-semibold mb-3">
-            {isBatch ? '공급자별 견적 비교' : '견적 비교'}
-            {request.status === 'open' && deadlinePassed && (
-              <span className="ml-2 text-xs font-normal text-amber-600">마감됨 — 견적 선택 가능</span>
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <h2 className="font-semibold">
+              {isBatch ? '공급자별 견적 비교' : '견적 비교'}
+              {request.status === 'open' && deadlinePassed && (
+                <span className="ml-2 text-xs font-normal text-amber-600">마감됨 — 견적 선택 가능</span>
+              )}
+            </h2>
+            {/* 필터 칩 */}
+            {bids.length > 1 && (
+              <div className="flex items-center gap-1 text-xs">
+                <span className="text-muted-foreground mr-1">필터:</span>
+                {([
+                  { k: 'all',  l: '전체' },
+                  { k: 'tier', l: '🏆 티어 있음' },
+                  { k: 'fast', l: '⚡ 빠른응답' },
+                  { k: 'safe', l: '✨ 추천 (티어+빠른응답)' },
+                ] as const).map(c => (
+                  <Link
+                    key={c.k}
+                    href={`/researcher/requests/${params.id}${c.k === 'all' ? '' : `?filter=${c.k}`}`}
+                    className={cn(
+                      'px-2.5 py-1 rounded-full border transition',
+                      filter === c.k
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'border-border hover:bg-muted'
+                    )}
+                  >
+                    {c.l} <span className="opacity-70">({filterCounts[c.k]})</span>
+                  </Link>
+                ))}
+              </div>
             )}
-          </h2>
+          </div>
 
           {!bids.length ? (
             <div className="rounded-lg border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
@@ -450,13 +597,75 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
                     return (
                       <div key={bid.id} className="rounded-lg border border-border p-3">
                         <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold text-sm">{s?.company_name ?? '—'}</span>
                             {idx === 0 && <Badge className="text-xs">최저가</Badge>}
                             {veri && <VeriBadge status={veri.status} />}
+                            {s?.origin === 'overseas' && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 text-[11px] font-semibold">
+                                🌐 해외{s.country ? ` · ${s.country}` : ''}
+                              </span>
+                            )}
+                            {s?.or_type && (
+                              <span className="rounded-full bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 text-[11px] font-semibold">
+                                {s.or_type === 'only_representative' ? '유일대리인' : '한국지사'}
+                              </span>
+                            )}
+                            {bid.cert_responsibility_ack && (
+                              <span className="rounded-full bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 text-[11px] font-semibold">
+                                ⚠ KC·전기안전 공급사 책임
+                              </span>
+                            )}
+                            {s?.tier && (
+                              <span
+                                className="rounded-full px-2 py-0.5 text-[11px] font-bold border"
+                                style={{
+                                  borderColor: s.tier === 'gold' ? '#D4AF37' : s.tier === 'silver' ? '#A8A8A8' : '#CD7F32',
+                                  color:       s.tier === 'gold' ? '#D4AF37' : s.tier === 'silver' ? '#A8A8A8' : '#CD7F32',
+                                  background:  s.tier === 'gold' ? '#D4AF3715' : s.tier === 'silver' ? '#A8A8A815' : '#CD7F3215',
+                                }}
+                                title={`${s.tier === 'gold' ? '100' : s.tier === 'silver' ? '30' : '10'}명+ 인증 연구자를 초대한 공급자`}
+                              >
+                                🏆 {s.tier === 'gold' ? 'Gold' : s.tier === 'silver' ? 'Silver' : 'Bronze'}
+                              </span>
+                            )}
+                            {s?.fast_responder && (
+                              <span
+                                className="rounded-full bg-secondary/10 text-secondary border border-secondary/30 px-2 py-0.5 text-[11px] font-bold"
+                                title="최근 30일 평균 응답 60분 이하 · 5건 이상"
+                              >
+                                ⚡ 빠른응답
+                              </span>
+                            )}
                           </div>
                           <span className="font-bold text-primary">{total.toLocaleString()}원</span>
                         </div>
+
+                        {/* 공급 조건 요약 — 납기/통관/데모/샘플 */}
+                        {(bid.lead_time_days || bid.customs_duty_included !== null || bid.demo_available !== null || bid.sample_available !== null || bid.conditions_note) && (
+                          <div className="mb-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                            {bid.lead_time_days != null && (
+                              <span>📦 예상 납기 <strong className="text-foreground">{bid.lead_time_days}일</strong>{s?.origin === 'overseas' ? ' (통관 포함)' : ''}</span>
+                            )}
+                            {bid.customs_duty_included !== null && (
+                              <span>🛃 관세·부가세 {bid.customs_duty_included ? '포함' : '별도'}</span>
+                            )}
+                            {bid.demo_available !== null && (
+                              <span>🔧 데모 {bid.demo_available ? `가능${bid.demo_days ? ` (${bid.demo_days}일)` : ''}` : '불가'}</span>
+                            )}
+                            {bid.sample_available !== null && (
+                              <span>🧪 샘플 {bid.sample_available ? '제공' : '불가'}</span>
+                            )}
+                            {bid.conditions_note && (
+                              <span className="basis-full">📝 {bid.conditions_note}</span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* 입찰 첨부 견적 PDF — 공급사 양식 (수락 전 비교 다운로드) */}
+                        {quoteMap[bid.id] && (
+                          <div className="mb-2"><QuoteLink bidId={bid.id} /></div>
+                        )}
 
                         {/* submitted: 파일 링크 + 수락/반려 */}
                         {veri?.status === 'submitted' && (
@@ -563,6 +772,7 @@ export default async function RequestDetailPage({ params }: { params: { id: stri
                           {bid.is_partial && <span className="text-amber-600">부분견적</span>}
                         </div>
                         {bid.memo && <p className="mt-1.5 text-xs text-muted-foreground">{bid.memo}</p>}
+                        <div className="mt-2"><QuoteLink bidId={bid.id} /></div>
                       </div>
 
                       {/* 우측: 가격 + 수락 버튼 (기본 상태 or accepted) */}

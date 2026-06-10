@@ -4,13 +4,7 @@ import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ChevronRight } from 'lucide-react'
-
-const STATUS_LABEL: Record<string, string> = {
-  open: '입찰 중',
-  closed: '마감',
-  expired: '기간 만료',
-  cancelled: '취소됨',
-}
+import { getServerT, getServerLang } from '@/lib/i18n/server'
 
 const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
   open: 'default',
@@ -20,6 +14,14 @@ const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'outline'> = {
 }
 
 export default async function ResearcherRequestsPage() {
+  const t = getServerT()
+  const lang = getServerLang()
+  const STATUS_LABEL: Record<string, string> = {
+    open: t('dash.status.open'),
+    closed: t('dash.status.closed'),
+    expired: t('dash.status.expired'),
+    cancelled: t('dash.status.cancelled'),
+  }
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -36,19 +38,19 @@ export default async function ResearcherRequestsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">내 요청 목록</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">총 {requests?.length ?? 0}건</p>
+          <h1 className="text-2xl font-bold">{t('dash.myRequestsTitle')}</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{t('dash.totalCount').replace('{n}', String(requests?.length ?? 0))}</p>
         </div>
         <Link href="/researcher/request" className={buttonVariants({ size: 'sm' })}>
-          + 새 요청
+          {t('dash.newRequest')}
         </Link>
       </div>
 
       {!requests || requests.length === 0 ? (
         <div className="rounded-lg border border-dashed border-border py-16 text-center">
-          <p className="text-muted-foreground mb-4">아직 견적 요청이 없습니다.</p>
+          <p className="text-muted-foreground mb-4">{t('dash.empty.requests')}</p>
           <Link href="/researcher/request" className={buttonVariants()}>
-            첫 견적 요청하기
+            {t('dash.firstRequestCta')}
           </Link>
         </div>
       ) : (
@@ -61,15 +63,15 @@ export default async function ResearcherRequestsPage() {
                   <Badge variant={STATUS_VARIANT[req.status] ?? 'outline'}>
                     {STATUS_LABEL[req.status] ?? req.status}
                   </Badge>
-                  <span className="font-medium">{req.title ?? '(제목 없음)'}</span>
+                  <span className="font-medium">{req.title ?? t('dash.noTitle')}</span>
                   <span className="text-xs text-muted-foreground">
-                    {req.type === 'single' ? '단건' : '묶음'}
+                    {req.type === 'single' ? t('dash.typeSingle') : t('dash.typeBatch')}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {req.deadline
-                    ? `마감 ${req.deadline}`
-                    : new Date(req.created_at).toLocaleDateString('ko-KR')}
+                    ? `${t('dash.deadlinePrefix')} ${req.deadline}`
+                    : new Date(req.created_at).toLocaleDateString(lang === 'en' ? 'en-US' : 'ko-KR')}
                   <ChevronRight className="h-3 w-3" />
                 </div>
               </Link>

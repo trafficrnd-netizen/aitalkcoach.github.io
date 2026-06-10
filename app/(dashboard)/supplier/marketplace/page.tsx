@@ -1,11 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Store } from 'lucide-react'
+import { Store, Users, TrendingDown } from 'lucide-react'
 import { MarketplaceList } from '@/components/marketplace-list'
 import { RemainingCreditsBar } from '@/components/remaining-credits-bar'
+import { getActiveGroupBuys } from '@/lib/actions/group-buy'
+import { getServerT } from '@/lib/i18n/server'
 
 export default async function MarketplacePage() {
+  const t = getServerT()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -53,25 +56,59 @@ export default async function MarketplacePage() {
 
   const hasCategories = (profile?.categories?.length ?? 0) > 0
 
+  // 그룹 바이 클러스터 — 묶음 견적 기회
+  const groupBuys = await getActiveGroupBuys(7, 2)
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Store className="h-6 w-6 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">입찰 광장</h1>
-            <p className="text-sm text-muted-foreground">연구자의 견적 요청에 경쟁 입찰하세요</p>
+            <h1 className="text-2xl font-bold">{t('dash.marketplaceTitle')}</h1>
+            <p className="text-sm text-muted-foreground">{t('dash.marketplaceSub')}</p>
           </div>
         </div>
-        <span className="text-sm text-muted-foreground">공개 요청 {requests?.length ?? 0}건</span>
+        <span className="text-sm text-muted-foreground">{t('dash.openRequestsCount').replace('{n}', String(requests?.length ?? 0))}</span>
       </div>
 
       {!hasCategories && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 mb-6 text-sm text-amber-900">
-          <p className="font-medium mb-1">취급 카테고리가 설정되지 않았습니다</p>
-          <p className="text-amber-700 mb-2">카테고리를 등록하면 관련 요청을 쉽게 파악할 수 있습니다.</p>
-          <Link href="/supplier/settings" className="underline font-medium">설정하러 가기 →</Link>
+          <p className="font-medium mb-1">{t('mp.catNoneTitle')}</p>
+          <p className="text-amber-700 mb-2">{t('mp.catNoneDesc')}</p>
+          <Link href="/supplier/settings" className="underline font-medium">{t('mp.catNoneCta')}</Link>
         </div>
+      )}
+
+      {/* 그룹 바이 — 묶음 견적 기회 */}
+      {groupBuys.length > 0 && (
+        <section className="mb-6 rounded-xl border-2 border-secondary/30 bg-secondary/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingDown className="h-5 w-5 text-secondary" />
+            <h2 className="font-bold text-foreground">{t('mp.gbTitle')}</h2>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-secondary/20 text-secondary">{t('mp.gbClusters').replace('{n}', String(groupBuys.length))}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3 leading-snug">
+            {t('mp.gbDesc')}
+          </p>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {groupBuys.slice(0, 6).map((g) => (
+              <div key={g.matchKey} className="rounded-md border border-border bg-background p-3">
+                <div className="flex items-baseline justify-between gap-2 mb-1">
+                  <span className="font-semibold text-sm truncate">{g.substanceName}</span>
+                  <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1 shrink-0">
+                    <Users className="h-3 w-3" />{t('mp.peopleCount').replace('{n}', String(g.researcherCount))}
+                  </span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  {g.casNumber && <span className="font-mono">{g.casNumber} · </span>}
+                  합산 <strong className="text-foreground">{g.totalQty.toLocaleString()}{g.unit ? ` ${g.unit}` : ''}</strong>
+                  {' · '}요청 {g.requestCount}건
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
       )}
 
       <MarketplaceList

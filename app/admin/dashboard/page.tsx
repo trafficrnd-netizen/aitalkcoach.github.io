@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Coins, Sliders, BarChart3 } from 'lucide-react'
+import { Coins, Sliders, BarChart3, TrendingUp, FileSearch } from 'lucide-react'
 
 type Stats = {
   totalResearchers: number
@@ -139,6 +139,34 @@ export default function AdminDashboard() {
                 <div>
                   <p className="text-sm font-semibold text-gray-900">참여도 모니터링</p>
                   <p className="mt-0.5 text-xs text-gray-500">행위별 빈도 + TOP 사용자</p>
+                </div>
+              </div>
+            </Link>
+            <Link
+              href="/admin/utm"
+              className="group rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-900 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-purple-600 group-hover:bg-purple-100">
+                  <TrendingUp className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">마케팅 채널 분석</p>
+                  <p className="mt-0.5 text-xs text-gray-500">UTM별 가입·전환율</p>
+                </div>
+              </div>
+            </Link>
+            <Link
+              href="/admin/monitoring"
+              className="group rounded-xl border border-gray-200 bg-white p-5 hover:border-gray-900 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-100">
+                  <FileSearch className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">거래 · 견적 모니터링</p>
+                  <p className="mt-0.5 text-xs text-gray-500">거래경과·낙찰가·다운로드 기록 + CSV</p>
                 </div>
               </div>
             </Link>

@@ -94,6 +94,41 @@ export async function processReferralSignup(
 
   const admin = createAdminClient()
 
+  // ── 자전 초대(self-dealing) 추가 차단 ──────────────────────────────
+  // 초대자와 피초대자가 같은 사람으로 의심되면 행은 기록하되 크레딧은 미적립
+  let suspectSelfDeal = false
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = admin as any
+    // 양측 휴대폰 수집 (researcher/supplier 프로필 모두 확인)
+    const phoneOf = async (uid: string): Promise<string> => {
+      const { data: rp } = await db.from('researcher_profiles').select('phone').eq('user_id', uid).maybeSingle()
+      if (rp?.phone) return rp.phone.replace(/\D/g, '')
+      const { data: sp } = await db.from('supplier_profiles').select('contact_phone').eq('user_id', uid).maybeSingle()
+      return (sp?.contact_phone ?? '').replace(/\D/g, '')
+    }
+    const [inviterPhone, inviteePhone] = await Promise.all([phoneOf(inviter.userId), phoneOf(newUserId)])
+    if (inviterPhone && inviteePhone && inviterPhone === inviteePhone) {
+      suspectSelfDeal = true
+    }
+    // 동일 초대자에게 이미 같은 휴대폰으로 적립된 피초대자가 있으면 중복 차단
+    if (!suspectSelfDeal && inviteePhone) {
+      const { data: dupes } = await db
+        .from('referrals')
+        .select('invitee_id')
+        .eq('inviter_id', inviter.userId)
+        .eq('status', 'joined')
+      for (const d of (dupes ?? [])) {
+        if (d.invitee_id && d.invitee_id !== newUserId) {
+          const p = await phoneOf(d.invitee_id)
+          if (p && p === inviteePhone) { suspectSelfDeal = true; break }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[referral] self-deal 검사 오류:', e)
+  }
+
   // 기존 'sent' 초대 행이 있으면 joined 로 갱신, 없으면 새로 기록
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existing } = await (admin as any)
@@ -128,6 +163,16 @@ export async function processReferralSignup(
       .select('id')
       .single()
     referralId = inserted?.id ?? null
+  }
+
+  // 자전 초대 의심 시: 관계는 기록(상태 표시)하되 크레딧은 미적립
+  if (suspectSelfDeal) {
+    if (referralId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (admin as any).from('referrals').update({ status: 'flagged' }).eq('id', referralId)
+    }
+    console.warn('[referral] 자전 초대 의심 — 크레딧 미적립:', inviter.userId, newUserId)
+    return
   }
 
   // 초대자에게 크레딧 적립

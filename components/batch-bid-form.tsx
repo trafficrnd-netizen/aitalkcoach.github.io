@@ -11,6 +11,7 @@ import {
   type SupplierQuoteRequestItem,
 } from '@/lib/excel-templates'
 import { FileText, Download, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { BidConditionFields, type BidContext } from '@/components/bid-condition-fields'
 
 type RequestItem = SupplierQuoteRequestItem & { purity: string | null }
 
@@ -18,9 +19,10 @@ type Props = {
   requestId: string
   items: RequestItem[]
   requestTitle?: string
+  bidContext: BidContext
 }
 
-export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 요청' }: Props) {
+export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 요청', bidContext }: Props) {
   const [bidItems, setBidItems] = useState<BidItemInput[]>(
     items.map(item => ({ requestItemId: item.id, totalPrice: 0, available: true }))
   )
@@ -61,11 +63,27 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
     }
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
+    // 조건 필드(해외/데모/샘플)를 FormData에서 수집
+    const fd = new FormData(e.currentTarget)
+    const conditions = {
+      leadTimeDays: (fd.get('leadTimeDays') as string) || '',
+      customsDutyIncluded: (fd.get('customsDutyIncluded') as string) || '',
+      certResponsibilityAck: fd.get('certResponsibilityAck') === 'true',
+      demoAvailable: (fd.get('demoAvailable') as string) || '',
+      demoDays: (fd.get('demoDays') as string) || '',
+      sampleAvailable: (fd.get('sampleAvailable') as string) || '',
+      conditionsNote: (fd.get('conditionsNote') as string) || '',
+    }
+    const quoteFile = fd.get('quotePdf') as File | null
+    if (!quoteFile || !quoteFile.size) {
+      setError('공급사 양식의 견적 PDF를 첨부해주세요.')
+      return
+    }
     startTransition(async () => {
-      const result = await submitBatchBid(requestId, bidItems, { deliveryDate, memo })
+      const result = await submitBatchBid(requestId, bidItems, { deliveryDate, memo, ...conditions }, quoteFile)
       if (result?.error) setError(result.error)
     })
   }
@@ -214,6 +232,26 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
             onChange={e => setMemo(e.target.value)}
           />
         </div>
+      </div>
+
+      {/* 조건 명시: 해외/장비 데모/시약 샘플 */}
+      <BidConditionFields ctx={bidContext} />
+
+      {/* 공급사 양식 견적서 PDF — 필수 */}
+      <div>
+        <label className="text-sm font-medium mb-1.5 block">
+          견적서 PDF (공급사 양식) <span className="text-destructive">*</span>
+        </label>
+        <Input
+          type="file"
+          name="quotePdf"
+          accept="application/pdf"
+          required
+          className="max-w-md cursor-pointer file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
+        />
+        <p className="mt-1 text-xs text-muted-foreground">
+          자사 양식의 견적서를 PDF로 첨부해주세요. (10MB 이하) 연구자가 비교 단계에서 다운로드합니다.
+        </p>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}

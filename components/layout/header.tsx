@@ -7,6 +7,8 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { LayoutDashboard, LogOut } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
+import { LanguageToggle } from '@/components/language-toggle'
+import { useT } from '@/lib/i18n/context'
 
 export interface HeaderUser {
   email: string
@@ -16,6 +18,7 @@ export interface HeaderUser {
 
 export function Header({ user }: { user?: HeaderUser | null }) {
   const router = useRouter()
+  const t = useT()
   const [loggingOut, setLoggingOut] = useState(false)
 
   async function handleLogout() {
@@ -27,8 +30,8 @@ export function Header({ user }: { user?: HeaderUser | null }) {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-8">
+      <div className="container flex h-16 items-center justify-between gap-2 px-4">
+        <div className="flex items-center gap-8 shrink-0">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl font-bold text-primary">BidVibe</span>
           </Link>
@@ -37,25 +40,29 @@ export function Header({ user }: { user?: HeaderUser | null }) {
               href="/#how-it-works"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              이용 방법
+              {t('nav.howItWorks')}
             </Link>
             <Link
               href="/#pricing"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              요금제
+              {t('nav.pricing')}
             </Link>
           </nav>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 shrink-0 sm:gap-3">
+          {/* 모바일: 간결 토글 / 데스크톱: 풀 토글 */}
+          <span className="inline-flex sm:hidden"><LanguageToggle variant="compact" /></span>
+          <span className="hidden sm:inline-flex"><LanguageToggle /></span>
           {user ? (
             <>
-              {/* 로그인 상태 표시 */}
-              <span className="hidden items-center gap-1.5 sm:flex">
+              {/* 로그인 상태 표시 — 데스크톱만 */}
+              <span className="hidden items-center gap-1.5 lg:flex">
                 <span className="h-2 w-2 rounded-full bg-secondary" aria-hidden="true" />
                 <span className="text-sm text-muted-foreground">
-                  {user.roleLabel} · <span className="font-medium text-foreground">{user.email}</span>
+                  {user.dashboardPath.includes('/supplier') ? t('nav.roleSupplier') : t('nav.roleResearcher')} ·{' '}
+                  <span className="font-medium text-foreground">{user.email}</span>
                 </span>
               </span>
               <Link
@@ -63,27 +70,28 @@ export function Header({ user }: { user?: HeaderUser | null }) {
                 className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5')}
               >
                 <LayoutDashboard className="h-4 w-4" />
-                내 대시보드
+                <span className="hidden sm:inline">{t('nav.myDashboard')}</span>
               </Link>
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
                 className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
+                aria-label={t('common.logout')}
               >
                 <LogOut className="h-4 w-4" />
-                {loggingOut ? '로그아웃 중…' : '로그아웃'}
+                <span className="hidden sm:inline">{loggingOut ? t('nav.loggingOut') : t('common.logout')}</span>
               </button>
             </>
           ) : (
             <>
-              <Link href="/login" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-                로그인
+              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'hidden sm:inline-flex')}>
+                {t('common.login')}
               </Link>
               <Link href="/signup/researcher" className={buttonVariants({ size: 'sm' })}>
-                견적 요청하기
+                {t('nav.requestQuote')}
               </Link>
-              <Link href="/signup/supplier" className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-                공급자 등록
+              <Link href="/signup/supplier" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'hidden md:inline-flex')}>
+                {t('nav.registerSupplier')}
               </Link>
             </>
           )}

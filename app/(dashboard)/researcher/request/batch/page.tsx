@@ -10,6 +10,7 @@ import type { BatchItem } from '@/components/batch-item-row'
 import { createBatchRequest } from '@/lib/actions/request'
 import { AddressSearch } from '@/components/address-search'
 import { ExcelBatchSection } from '@/components/excel-batch-section'
+import { PAYMENT_TERMS, paymentTermLabel, type PaymentTermValue } from '@/lib/payment-terms'
 import { Plus, Clock, CalendarClock, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -20,6 +21,8 @@ interface Meta {
   title: string
   deadline: string
   deliveryAddress: string
+  deliveryCity: string
+  paymentTerms: PaymentTermValue | ''
   notes: string
 }
 
@@ -41,7 +44,7 @@ const BID_MODE_OPTIONS: { value: BidMode; icon: React.ReactNode; label: string; 
 export default function BatchRequestPage() {
   const [step, setStep] = useState<Step>('form')
   const [items, setItems] = useState<BatchItem[]>([emptyItem(), emptyItem()])
-  const [meta, setMeta] = useState<Meta>({ title: '', deadline: '', deliveryAddress: '', notes: '' })
+  const [meta, setMeta] = useState<Meta>({ title: '', deadline: '', deliveryAddress: '', deliveryCity: '', paymentTerms: '', notes: '' })
   const [bidMode, setBidMode] = useState<BidMode>('open')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -79,6 +82,14 @@ export default function BatchRequestPage() {
       setError('기간 마감형은 입찰 마감일을 입력해주세요.')
       return
     }
+    if (!meta.deliveryCity.trim()) {
+      setError('배송 도시명을 입력해주세요. (대리점 권역 매칭에 필요합니다)')
+      return
+    }
+    if (!meta.paymentTerms) {
+      setError('결제조건을 선택해주세요.')
+      return
+    }
     setStep('preview')
   }
 
@@ -112,6 +123,8 @@ export default function BatchRequestPage() {
             />
           )}
           {meta.deliveryAddress && <PreviewRow label="배송지" value={meta.deliveryAddress} />}
+          {meta.deliveryCity && <PreviewRow label="배송 도시 (권역)" value={meta.deliveryCity} />}
+          {meta.paymentTerms && <PreviewRow label="결제조건" value={paymentTermLabel(meta.paymentTerms)} />}
           {meta.notes && <PreviewRow label="추가 요청사항" value={meta.notes} />}
         </div>
 
@@ -260,7 +273,40 @@ export default function BatchRequestPage() {
             label="배송지"
             value={meta.deliveryAddress}
             onChange={v => setMeta(prev => ({ ...prev, deliveryAddress: v }))}
+            onCityChange={c => setMeta(prev => ({ ...prev, deliveryCity: c }))}
           />
+          <div className="space-y-2">
+            <Label htmlFor="deliveryCity">
+              배송 도시 <span className="text-destructive">*</span>
+              <span className="ml-1 text-xs font-normal text-muted-foreground">(대리점 권역)</span>
+            </Label>
+            <Input
+              id="deliveryCity"
+              value={meta.deliveryCity}
+              onChange={setMetaField('deliveryCity')}
+              placeholder="예: 서울특별시 관악구"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>결제조건 <span className="text-destructive">*</span></Label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {PAYMENT_TERMS.map(t => (
+                <button
+                  type="button"
+                  key={t.value}
+                  onClick={() => setMeta(prev => ({ ...prev, paymentTerms: t.value }))}
+                  className={cn(
+                    'rounded-md border p-2.5 text-left transition',
+                    meta.paymentTerms === t.value ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:bg-muted/50'
+                  )}
+                >
+                  <div className="text-sm font-semibold">{t.label}</div>
+                  <div className="text-[11px] text-muted-foreground">{t.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="notes">추가 요청사항</Label>
             <textarea

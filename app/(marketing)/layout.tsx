@@ -2,6 +2,7 @@ import { Header, type HeaderUser } from '@/components/layout/header'
 import { EarlyBirdBanner } from '@/components/early-bird-banner'
 import { CopyProtect } from '@/components/layout/copy-protect'
 import { BriefingTicker } from '@/components/briefing-ticker'
+import { SiteFooter } from '@/components/layout/site-footer'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function MarketingLayout({
@@ -33,19 +34,7 @@ export default async function MarketingLayout({
       <BriefingTicker />
       <Header user={headerUser} />
       <main className="flex-1">{children}</main>
-      <footer className="border-t border-border py-8">
-        <div className="container flex flex-col items-center gap-2 text-sm text-muted-foreground md:flex-row md:justify-between">
-          <p>© 2026 BidVibe. All rights reserved.</p>
-          <div className="flex gap-4">
-            <a href="/terms" className="hover:text-foreground transition-colors">
-              이용약관
-            </a>
-            <a href="/privacy" className="hover:text-foreground transition-colors">
-              개인정보처리방침
-            </a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

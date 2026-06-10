@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useT } from '@/lib/i18n/context'
 
 export function EarlyBirdBanner() {
+  const t = useT()
   const [left, setLeft] = useState<number | null>(null)
 
   useEffect(() => {
@@ -13,27 +15,28 @@ export function EarlyBirdBanner() {
       .catch(() => setLeft(null))
   }, [])
 
+  const seatText = left !== null && left > 0
+    ? t('banner.seatsLeft').replace('{n}', String(left))
+    : left === 0
+    ? t('banner.seatsClosed')
+    : t('banner.seatsBase')
+
   return (
-    <div className="bg-primary text-primary-foreground py-2.5 px-4 text-center text-sm">
-      <span className="mr-4">🔬 <strong>연구자 완전 무료</strong></span>
-      <span className="opacity-40 mr-4 hidden sm:inline">|</span>
-      <span className="font-semibold">🎁 공급자 얼리버드</span>
-      {left !== null && left > 0 ? (
-        <span className="ml-2">
-          처음 20개사 Pro 1개월 무료 —{' '}
-          <span className="font-bold underline">{left}자리 남음</span>
+    <div className="bg-primary text-primary-foreground py-2 px-4 text-center text-xs sm:text-sm [word-break:keep-all]">
+      {/* 모바일: 2줄 간결 / 데스크톱: 1줄 전체 */}
+      <div className="flex flex-col items-center justify-center gap-x-3 gap-y-0.5 sm:flex-row sm:flex-wrap">
+        <span>🔬 <strong>{t('banner.researcherFree')}</strong></span>
+        <span className="hidden opacity-40 sm:inline">|</span>
+        <span className="flex flex-wrap items-center justify-center gap-x-1.5">
+          <span className="font-semibold">🎁 {t('banner.supplierEarly')}</span>
+          <span className="opacity-90">{seatText}</span>
+          <Link href="/signup/supplier" className="font-medium underline hover:opacity-80">
+            {t('banner.registerNow')}
+          </Link>
         </span>
-      ) : left === 0 ? (
-        <span className="ml-2">얼리버드 마감</span>
-      ) : (
-        <span className="ml-2">처음 20개사 Pro 1개월 무료</span>
-      )}
-      <Link
-        href="/signup/supplier"
-        className="ml-3 underline font-medium hover:opacity-80"
-      >
-        지금 등록 →
-      </Link>
+        <span className="hidden opacity-40 sm:inline">|</span>
+        <span className="font-semibold">💸 {t('banner.zeroFee')}</span>
+      </div>
     </div>
   )
 }

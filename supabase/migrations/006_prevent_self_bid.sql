@@ -1,4 +1,4 @@
--- 자전거래 방지: 같은 사용자가 연구자+공급자 계정 모두 보유 시 자가 입찰 차단
+-- 자전거래방지: 같은 사용자가 연구자+공급자 계정 모두 보유 시 자가 입찰 차단
 -- INSERT/UPDATE 시 bids 테이블에 적용
 
 CREATE OR REPLACE FUNCTION prevent_self_bid_func()

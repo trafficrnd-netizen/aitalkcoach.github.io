@@ -6,6 +6,43 @@ import { redirect } from 'next/navigation'
 import { resend, FROM_EMAIL } from '@/lib/resend'
 import { awardCredits } from '@/lib/credits'
 
+// ── 견적 PDF 첨부 (공급사 양식) ──────────────────────────────────────────────
+const QUOTE_MAX_BYTES = 10 * 1024 * 1024 // 10 MB
+
+/** 입찰 폼에서 받은 견적 PDF 유효성 검사 — 문제가 있으면 에러 메시지, 없으면 null */
+function validateQuotePdf(file: File | null): string | null {
+  if (!file || !file.size) return '공급사 양식의 견적 PDF를 첨부해주세요.'
+  if (file.type !== 'application/pdf') return '견적서는 PDF 파일만 업로드할 수 있습니다.'
+  if (file.size > QUOTE_MAX_BYTES) return '견적 PDF 크기는 10MB 이하여야 합니다.'
+  return null
+}
+
+/**
+ * 견적 PDF를 bid-quotes 스토리지에 업로드하고 bids 레코드에 경로를 기록한다.
+ * 업로드 실패 시 에러 메시지를 반환한다(성공이면 null).
+ */
+async function uploadQuotePdf(bidId: string, file: File): Promise<string | null> {
+  const admin = createAdminClient()
+  const filePath = `${bidId}/${Date.now()}.pdf`
+  const buffer = Buffer.from(await file.arrayBuffer())
+
+  const { error: uploadError } = await admin.storage
+    .from('bid-quotes')
+    .upload(filePath, buffer, { contentType: 'application/pdf', upsert: false })
+  if (uploadError) {
+    console.error('[uploadQuotePdf] upload error:', uploadError)
+    return '견적 PDF 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.'
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any)
+    .from('bids')
+    .update({ quote_file_path: filePath, quote_file_name: file.name, quote_file_size: file.size })
+    .eq('id', bidId)
+
+  return null
+}
+
 export type BidItemInput = {
   requestItemId: string
   totalPrice: number
@@ -22,6 +59,37 @@ interface NotificationEmailEntry {
 /** 휴대폰 번호 정규화 — 숫자만 추출 */
 function normalizePhone(p: string | null | undefined): string {
   return (p ?? '').replace(/\D/g, '')
+}
+
+/** 입찰 조건 필드 묶음 */
+interface BidConditions {
+  lead_time_days: number | null
+  customs_duty_included: boolean | null
+  cert_responsibility_ack: boolean
+  demo_available: boolean | null
+  demo_days: number | null
+  sample_available: boolean | null
+  conditions_note: string | null
+}
+
+/** FormData(단건) 또는 평면 객체(묶음)에서 조건 필드 추출 */
+function parseBidConditions(src: FormData | Record<string, unknown>): BidConditions {
+  const get = (k: string): string => {
+    if (src instanceof FormData) return (src.get(k) as string) ?? ''
+    const v = src[k]
+    return v == null ? '' : String(v)
+  }
+  const toBool3 = (s: string): boolean | null => (s === 'true' || s === 'yes' ? true : s === 'false' || s === 'no' ? false : null)
+
+  return {
+    lead_time_days: get('leadTimeDays') ? Number(get('leadTimeDays')) : null,
+    customs_duty_included: toBool3(get('customsDutyIncluded')),
+    cert_responsibility_ack: get('certResponsibilityAck') === 'true',
+    demo_available: toBool3(get('demoAvailable')),
+    demo_days: get('demoDays') ? Number(get('demoDays')) : null,
+    sample_available: toBool3(get('sampleAvailable')),
+    conditions_note: get('conditionsNote') || null,
+  }
 }
 
 /**
@@ -96,8 +164,16 @@ export async function submitSingleBid(formData: FormData) {
   const totalPrice = Number(formData.get('totalPrice'))
   const deliveryDate = (formData.get('deliveryDate') as string) || null
   const memo = (formData.get('memo') as string) || null
+  const quotePdf = formData.get('quotePdf') as File | null
+
+  // 조건 명시 필드
+  const cond = parseBidConditions(formData)
 
   if (!totalPrice || totalPrice <= 0) return { error: '견적 금액을 입력해주세요.' }
+
+  // 공급사 양식 견적 PDF 첨부 필수
+  const quoteErr = validateQuotePdf(quotePdf)
+  if (quoteErr) return { error: quoteErr }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: supplier } = await (supabase as any)
@@ -131,10 +207,18 @@ export async function submitSingleBid(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: bid, error: bidErr } = await (supabase as any)
     .from('bids')
-    .insert({ request_id: requestId, supplier_id: user.id, is_partial: false, delivery_date: deliveryDate, memo })
+    .insert({ request_id: requestId, supplier_id: user.id, is_partial: false, delivery_date: deliveryDate, memo, ...cond })
     .select('id')
     .single()
   if (bidErr || !bid) return { error: '입찰 처리 중 오류가 발생했습니다.' }
+
+  // 견적 PDF 업로드 — 실패 시 방금 만든 입찰을 롤백
+  const uploadErr = await uploadQuotePdf(bid.id, quotePdf as File)
+  if (uploadErr) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('bids').delete().eq('id', bid.id)
+    return { error: uploadErr }
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: reqItems } = await (supabase as any)
@@ -165,11 +249,36 @@ export async function submitSingleBid(formData: FormData) {
 export async function submitBatchBid(
   requestId: string,
   items: BidItemInput[],
-  meta: { deliveryDate: string; memo: string }
+  meta: {
+    deliveryDate: string
+    memo: string
+    leadTimeDays?: string
+    customsDutyIncluded?: string
+    certResponsibilityAck?: boolean
+    demoAvailable?: string
+    demoDays?: string
+    sampleAvailable?: string
+    conditionsNote?: string
+  },
+  quoteFile?: File | null
 ) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
+
+  // 공급사 양식 견적 PDF 첨부 필수
+  const quoteErr = validateQuotePdf(quoteFile ?? null)
+  if (quoteErr) return { error: quoteErr }
+
+  const cond = parseBidConditions({
+    leadTimeDays: meta.leadTimeDays,
+    customsDutyIncluded: meta.customsDutyIncluded,
+    certResponsibilityAck: meta.certResponsibilityAck ? 'true' : '',
+    demoAvailable: meta.demoAvailable,
+    demoDays: meta.demoDays,
+    sampleAvailable: meta.sampleAvailable,
+    conditionsNote: meta.conditionsNote,
+  })
 
   const available = items.filter(i => i.available)
   if (!available.length) return { error: '최소 1개 품목을 선택해야 합니다.' }
@@ -215,10 +324,19 @@ export async function submitBatchBid(
       is_partial: isPartial,
       delivery_date: meta.deliveryDate || null,
       memo: meta.memo || null,
+      ...cond,
     })
     .select('id')
     .single()
   if (bidErr || !bid) return { error: '입찰 처리 중 오류가 발생했습니다.' }
+
+  // 견적 PDF 업로드 — 실패 시 방금 만든 입찰을 롤백
+  const uploadErr = await uploadQuotePdf(bid.id, quoteFile as File)
+  if (uploadErr) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('bids').delete().eq('id', bid.id)
+    return { error: uploadErr }
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (supabase as any).from('bid_items').insert(

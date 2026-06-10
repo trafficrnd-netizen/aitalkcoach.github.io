@@ -5,6 +5,8 @@ export interface JusoResult {
   jibunAddr: string
   zipNo: string
   bdNm: string
+  siNm: string   // 시·도 (예: 서울특별시)
+  sggNm: string  // 시군구 (예: 관악구)
 }
 
 export async function GET(request: Request) {

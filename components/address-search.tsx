@@ -9,11 +9,13 @@ import type { JusoResult } from '@/app/api/juso/route'
 interface Props {
   value: string
   onChange: (value: string) => void
+  /** 도시(시·도 + 시군구)를 선택 시 부모에 전달 — 대리점 권역용 */
+  onCityChange?: (city: string) => void
   label?: string
   id?: string
 }
 
-export function AddressSearch({ value, onChange, label = '배송지', id }: Props) {
+export function AddressSearch({ value, onChange, onCityChange, label = '배송지', id }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<JusoResult[]>([])
   const [open, setOpen] = useState(false)
@@ -65,6 +67,11 @@ export function AddressSearch({ value, onChange, label = '배송지', id }: Prop
     setDetail('')
     setQuery(juso.roadAddr)
     setOpen(false)
+    // 도시(시·도 + 시군구) 추출 — 대리점 권역
+    if (onCityChange) {
+      const city = [juso.siNm, juso.sggNm].filter(Boolean).join(' ').trim()
+      if (city) onCityChange(city)
+    }
   }
 
   // If no Juso key, show plain input only

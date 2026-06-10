@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DualBoard, type BoardRequest, type BoardAd } from '@/components/dual-board'
+import { getServerT } from '@/lib/i18n/server'
 
 export default async function SupplierBoardPage() {
+  const t = getServerT()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -62,7 +64,7 @@ export default async function SupplierBoardPage() {
     categories: string[]; regions: string[]; contact_info: string | null; valid_until: string; created_at: string
   }) => ({
     ...a,
-    company_name: profileMap[a.supplier_id] ?? '(공급자)',
+    company_name: profileMap[a.supplier_id] ?? t('(공급자)'),
   }))
 
   // My ad IDs
@@ -75,8 +77,8 @@ export default async function SupplierBoardPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">게시판</h1>
-        <p className="text-sm text-muted-foreground mt-1">연구자 요청과 공급자 광고를 한눈에 확인하세요.</p>
+        <h1 className="text-2xl font-bold">{t('bd.title')}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t('bd.subtitle')}</p>
       </div>
       <DualBoard role="supplier" requests={requests} ads={ads} myAdIds={myAdIds} />
     </div>

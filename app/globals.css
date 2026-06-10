@@ -151,3 +151,19 @@ html.devtools-open [data-protect] {
            shadow-sm hover:shadow transition-all font-medium;
   }
 }
+
+/* ── 블로그 본문 (marked 출력) ───────────────────────────────────── */
+.blog-prose { color: hsl(var(--foreground)); line-height: 1.8; font-size: 1.05rem; }
+.blog-prose h1 { font-size: 2rem; font-weight: 800; color: hsl(var(--primary)); margin: 0 0 1.2rem; line-height: 1.25; }
+.blog-prose h2 { font-size: 1.45rem; font-weight: 700; color: hsl(var(--primary)); margin: 2.2rem 0 0.8rem; }
+.blog-prose h3 { font-size: 1.2rem; font-weight: 700; color: hsl(var(--primary)); margin: 1.6rem 0 0.6rem; }
+.blog-prose p { margin: 0 0 1.1rem; }
+.blog-prose ul, .blog-prose ol { margin: 0 0 1.1rem; padding-left: 1.4rem; }
+.blog-prose li { margin: 0.3rem 0; }
+.blog-prose ul { list-style: disc; }
+.blog-prose ol { list-style: decimal; }
+.blog-prose a { color: hsl(var(--secondary)); text-decoration: underline; font-weight: 600; }
+.blog-prose strong { font-weight: 700; color: hsl(var(--foreground)); }
+.blog-prose blockquote { border-left: 4px solid hsl(var(--accent)); background: hsl(var(--muted) / 0.4); padding: 0.8rem 1.2rem; border-radius: 0 0.5rem 0.5rem 0; margin: 1.4rem 0; color: hsl(var(--muted-foreground)); }
+.blog-prose code { background: hsl(var(--muted)); padding: 0.15rem 0.4rem; border-radius: 0.3rem; font-size: 0.9em; }
+.blog-prose hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 2rem 0; }
