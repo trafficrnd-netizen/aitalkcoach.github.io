@@ -63,7 +63,7 @@ export const dictionary: Record<Lang, Dict> = {
     'land.betaBadge': '베타 참여 모집 중',
     'land.heroTitle': '요청하면 견적이 다~ 온다',
     'land.heroSub1': '연구자-공급사 매칭 플랫폼',
-    'land.heroSub2': '수수료 없는 비공개 역경매로 쉽게 해보세요',
+    'land.heroSub2': '비공개 역경매로 쉽게 구매해보세요',
     'land.ctaResearcher': '연구자로 시작하기',
     'land.ctaSupplier': '공급자로 참여하기',
     'land.heroNoteR': '🔬 연구자 — 가입부터 낙찰까지 완전 무료',
