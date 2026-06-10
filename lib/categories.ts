@@ -216,6 +216,18 @@ export const CATEGORY_TREE: Record<ItemType, CategoryNode[]> = {
       ],
     },
     {
+      code: 'equipment.pretreatment',
+      label: '전처리장비',
+      children: [
+        { code: 'equipment.pretreatment.homogenize', label: '분쇄·균질화 장비 (Homogenizer/Mill)' },
+        { code: 'equipment.pretreatment.extraction', label: '추출·정제 장비 (SPE/LLE/ASE)' },
+        { code: 'equipment.pretreatment.digestion', label: '소화·분해 장비 (Microwave/Hot Block Digester)' },
+        { code: 'equipment.pretreatment.concentration', label: '농축·증발 장비 (N₂ Evaporator/Rotary Evaporator)' },
+        { code: 'equipment.pretreatment.filtration', label: '여과·정제 보조 장비 (Vacuum Filtration/UF)' },
+        { code: 'equipment.pretreatment.automation', label: '보조·자동화 장비 (Shaker/Vortex/Liquid Handler)' },
+      ],
+    },
+    {
       code: 'equipment.other',
       label: '기타 분석 장비',
     },
