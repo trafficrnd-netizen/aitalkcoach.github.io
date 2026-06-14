@@ -95,7 +95,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
 
   async function handleLogout() {
     await logout()
-    router.push('/login')
+    router.push(isMediRole ? '/medi/login' : '/login')
   }
 
   const creditsHref = isMediRole ? '/medi' : `/${role}/credits`

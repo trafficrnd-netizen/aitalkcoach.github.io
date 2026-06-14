@@ -22,8 +22,7 @@ export function MediHeader({ user }: { user?: MediHeaderUser | null }) {
   async function handleLogout() {
     setLoggingOut(true)
     await logout()
-    router.push('/medi')
-    router.refresh()
+    router.push('/medi/login')
   }
 
   return (
