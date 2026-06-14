@@ -54,7 +54,7 @@ export const AESTHETIC_TYPE_ICONS: Record<AestheticType, string> = {
   pack:    '😦',
   care:    '🧴',
   tool:    '✂',
-  bed:     '🛏',
+  bed:     '🛏️',
   textile: '🧺',
   device:  '⚡',
 }

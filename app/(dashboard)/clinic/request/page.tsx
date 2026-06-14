@@ -16,6 +16,7 @@ import {
   AESTHETIC_TYPE_LABELS,
   AESTHETIC_TYPE_ICONS,
   AESTHETIC_UNITS,
+  AESTHETIC_TREE,
   type AestheticType,
 } from '@/lib/aesthetic/catalog'
 
@@ -165,12 +166,12 @@ export default function MediRequestPage() {
       </div>
 
       <form onSubmit={handlePreview} className="space-y-5">
-        {/* 제품명 */}
+        {/* 자주 찾는 제품 */}
         <div className="space-y-1.5">
-          <Label htmlFor="productName">{t('medi.req.productName')} <span className="text-destructive">*</span></Label>
+          <Label htmlFor="productName">자주 찾는 제품 <span className="text-destructive">*</span></Label>
           <ProductSearch
             value={form.productName}
-            onChange={v => set('productName', v)}
+            onChange={v => { set('productName', v); if (!v) set('productCode', '') }}
             onSelect={r => {
                 set('productName', r.label)
                 set('productCode', r.code)
@@ -189,7 +190,7 @@ export default function MediRequestPage() {
               <button
                 key={type}
                 type="button"
-                onClick={() => set('productType', type)}
+                onClick={() => { set('productType', type); set('productCode', ''); set('productName', '') }}
                 className={cn(
                   'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                   form.productType === type
@@ -201,6 +202,25 @@ export default function MediRequestPage() {
               </button>
             ))}
           </div>
+
+          {/* 하위 카테고리 (제품 미선택 시) */}
+          {!form.productCode && (
+            <div className="flex gap-1.5 flex-wrap mt-2 pt-2 border-t border-border/50">
+              {AESTHETIC_TREE[form.productType].map(node => (
+                <button
+                  key={node.code}
+                  type="button"
+                  onClick={() => {
+                    set('productName', node.label)
+                    set('productCode', node.code)
+                  }}
+                  className="rounded-full border border-border px-2.5 py-1 text-[11px] text-muted-foreground hover:border-primary/60 hover:text-primary transition-colors"
+                >
+                  {node.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 수량 + 단위 */}
@@ -276,7 +296,7 @@ export default function MediRequestPage() {
             value={form.deliveryCity}
             onChange={v => set('deliveryCity', v)}
             label={t('medi.req.deliveryCity')}
-                      id="deliveryCity"
+            id="deliveryCity"
           />
         </div>
 

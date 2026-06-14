@@ -16,7 +16,7 @@ const TITLE_BILINGUAL = 'BidVibe — 요청하면 견적이 다~ 온다 | 수수
 const DESC_BILINGUAL =
   '요청하면 견적이 다~ 온다. 수수료 없는 연구자·공급사 비공개 역경매 플랫폼. Commission-free sealed-bid platform for lab procurement.'
 
-const OG_IMAGE = '/og-image.jpg'
+const OG_IMAGE = '/og-image.png'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),

@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     })
     const html = await res.text()
 
-    function getMeta(property: string): string | null {
+    const getMeta = (property: string): string | null => {
       // og: 또는 name= 방식 둘 다 지원
       const ogMatch = html.match(
         new RegExp(`<meta[^>]+property=["']${property}["'][^>]+content=["']([^"']+)["']`, 'i')

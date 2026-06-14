@@ -79,6 +79,7 @@ export function ProductSearch({
   const [results, setResults] = useState<ProductResult[]>([])
   const [loading, setLoading] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const hasFocused = useRef(false)
   const debouncedQ = useDebounce(value, 280)
 
   // 클릭 외부 닫기
@@ -152,6 +153,7 @@ export function ProductSearch({
   }, [filterType])
 
   useEffect(() => {
+    if (!hasFocused.current) return
     search(debouncedQ)
   }, [debouncedQ, search])
 
@@ -177,7 +179,7 @@ export function ProductSearch({
           type="text"
           value={value}
           onChange={e => handleInput(e.target.value)}
-          onFocus={() => search(value)}
+          onFocus={() => { hasFocused.current = true; search(value) }}
           placeholder={placeholder}
           className="w-full rounded-md border border-input bg-background pl-9 pr-8 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
