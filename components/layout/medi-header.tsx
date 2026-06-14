@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, LogOut, Sparkles } from 'lucide-react'
+import { LayoutDashboard, LogOut } from 'lucide-react'
 import { logout } from '@/lib/actions/auth'
 import { LanguageToggle } from '@/components/language-toggle'
 
@@ -31,12 +31,9 @@ export function MediHeader({ user }: { user?: MediHeaderUser | null }) {
 
         {/* 로고 — /medi 복귀 */}
         <Link href="/medi" className="flex items-center gap-2 shrink-0">
-          <Sparkles className="h-5 w-5 text-violet-400" />
-          <span className="font-black text-base tracking-tight">
-            BidVibe <span className="text-violet-400">Medi</span>
-          </span>
+          <img src="/logo-medi.svg" alt="Medi" className="h-8 w-auto" />
           <span className="hidden sm:inline text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">
-            프로모션 기간 전액무료
+            프로모션 기간 무료
           </span>
         </Link>
 
