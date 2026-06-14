@@ -4,6 +4,8 @@ import { getOrCreateReferralCode } from '@/lib/referral'
 import { InviteView, type ReferralRow } from '@/components/invite-view'
 import { LabGroupWidget } from '@/components/lab-group-widget'
 import { getLabGroupStatus } from '@/lib/actions/lab-group'
+import { getMyFollowedSuppliers, getMyCouponRequests } from '@/lib/actions/researcher-coupons'
+import { getActiveGroupBuys } from '@/lib/actions/group-buy'
 
 export default async function ResearcherInvitePage() {
   const supabase = await createClient()
@@ -12,7 +14,7 @@ export default async function ResearcherInvitePage() {
 
   const code = (await getOrCreateReferralCode(user.id, 'researcher')) ?? ''
 
-  const [referralsRes, labStatus] = await Promise.all([
+  const [referralsRes, labStatus, preferredSuppliers, groupBuys, couponRequests] = await Promise.all([
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('referrals')
@@ -21,12 +23,29 @@ export default async function ResearcherInvitePage() {
       .order('created_at', { ascending: false })
       .limit(50),
     getLabGroupStatus(),
+    getMyFollowedSuppliers(),
+    getActiveGroupBuys(),
+    getMyCouponRequests(),
   ])
+
+  const couponRequestStatuses = Object.fromEntries(
+    couponRequests.map(r => [r.supplierId, r.status] as const)
+  )
 
   return (
     <div className="space-y-6">
       {/* 랩 그룹 — 같은 기관·학과 5명 인증 시 그룹 형성 */}
-      {'peerCount' in labStatus && <LabGroupWidget status={labStatus} />}
+      {'peerCount' in labStatus && (
+        <LabGroupWidget
+          status={labStatus}
+          groupBuyCount={groupBuys.length}
+          preferredSuppliers={preferredSuppliers.map(s => ({
+            supplierId: s.supplierId,
+            companyName: s.companyName,
+          }))}
+          couponRequestStatuses={couponRequestStatuses}
+        />
+      )}
       <InviteView
         code={code}
         rewardPoints={3}

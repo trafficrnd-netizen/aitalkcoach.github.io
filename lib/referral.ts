@@ -83,7 +83,8 @@ async function findInviterByCode(code: string): Promise<InviterInfo | null> {
 export async function processReferralSignup(
   code: string,
   newUserId: string,
-  newUserEmail: string
+  newUserEmail: string,
+  newUserRole?: Role
 ): Promise<void> {
   const cleanCode = (code || '').trim().toUpperCase()
   if (!cleanCode) return
@@ -185,4 +186,20 @@ export async function processReferralSignup(
     'referrals',
     referralId ? String(referralId) : undefined
   )
+
+  // ── 단골 관계 자동 생성 (cross-role invite) ────────────────────────
+  // 연구자↔공급자 간 초대면 supplier_followers 에 연결 추가
+  if (newUserRole && newUserRole !== inviter.role) {
+    try {
+      const researcherId = newUserRole === 'researcher' ? newUserId : inviter.userId
+      const supplierId   = newUserRole === 'supplier'   ? newUserId : inviter.userId
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (admin as any).from('supplier_followers').upsert(
+        { researcher_id: researcherId, supplier_id: supplierId, via_code: cleanCode },
+        { onConflict: 'researcher_id,supplier_id' }
+      )
+    } catch (e) {
+      console.error('[referral] 단골 관계 생성 실패:', e)
+    }
+  }
 }

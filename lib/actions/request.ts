@@ -30,6 +30,8 @@ export async function createSingleRequest(formData: FormData) {
   const couponId = (formData.get('couponId') as string) || null
   const deliveryCity = (formData.get('deliveryCity') as string)?.trim() || null
   const paymentTerms = (formData.get('paymentTerms') as string) || null
+  const isGroupBuy = formData.get('isGroupBuy') === 'true'
+  const discountRequested = formData.get('discountRequested') === 'true'
 
   if (!substanceName || !qty || qty <= 0) {
     return { error: '물질명과 수량은 필수입니다.' }
@@ -73,6 +75,8 @@ export async function createSingleRequest(formData: FormData) {
       via_supplier_code: viaSupplierCode,
       delivery_city: deliveryCity,
       payment_terms: paymentTerms,
+      is_group_buy: isGroupBuy,
+      discount_requested: discountRequested,
     })
     .select('id')
     .single()
@@ -131,7 +135,7 @@ async function recordCouponRedemption(couponId: string, researcherId: string, re
 
 export async function createBatchRequest(
   items: BatchItem[],
-  meta: { title: string; deadline: string; deliveryAddress: string; notes: string; deliveryCity?: string; paymentTerms?: string },
+  meta: { title: string; deadline: string; deliveryAddress: string; notes: string; deliveryCity?: string; paymentTerms?: string; isGroupBuy?: boolean; discountRequested?: boolean },
   bidMode: string = 'open'
 ) {
   const supabase = await createClient()
@@ -156,6 +160,8 @@ export async function createBatchRequest(
       bid_mode: bidMode,
       delivery_city: meta.deliveryCity.trim(),
       payment_terms: meta.paymentTerms || null,
+      is_group_buy: meta.isGroupBuy ?? false,
+      discount_requested: meta.discountRequested ?? false,
     })
     .select('id')
     .single()

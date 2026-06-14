@@ -7,6 +7,7 @@ import {
   removeNotificationEmail,
   resendVerificationEmail,
 } from '@/lib/actions/researcher'
+import { useT } from '@/lib/i18n/context'
 
 interface NotificationEmailEntry {
   email: string
@@ -23,13 +24,14 @@ interface Props {
 }
 
 export function NotificationEmailsSection({ primaryEmail, initial, notice, noticeMessage }: Props) {
+  const t = useT()
   const [entries, setEntries] = useState<NotificationEmailEntry[]>(initial ?? [])
   const [newEmail, setNewEmail] = useState('')
   const [newLabel, setNewLabel] = useState('')
   const [showAdd, setShowAdd] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'ok' | 'err'; text: string } | null>(
     notice === 'verified'
-      ? { type: 'ok', text: '이메일 인증이 완료되었습니다.' }
+      ? { type: 'ok', text: t('notif.verifiedMsg') }
       : notice === 'error' && noticeMessage
       ? { type: 'err', text: decodeURIComponent(noticeMessage) }
       : null
@@ -48,7 +50,7 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
         ...prev,
         {
           email: newEmail.trim().toLowerCase(),
-          label: newLabel.trim() || '추가 이메일',
+          label: newLabel.trim() || t('notif.addPh'),
           verified: false,
           created_at: new Date().toISOString(),
         },
@@ -56,12 +58,12 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
       setNewEmail('')
       setNewLabel('')
       setShowAdd(false)
-      setFeedback({ type: 'ok', text: `${newEmail} 로 인증 메일을 발송했습니다. 메일함을 확인해주세요.` })
+      setFeedback({ type: 'ok', text: t('notif.sentMsg').replace('{email}', newEmail) })
     })
   }
 
   function handleRemove(email: string) {
-    if (!confirm(`${email} 을(를) 삭제하시겠습니까?`)) return
+    if (!confirm(t('notif.confirmRemove').replace('{email}', email))) return
     startTransition(async () => {
       const res = await removeNotificationEmail(email)
       if (res.error) {
@@ -69,7 +71,7 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
         return
       }
       setEntries(prev => prev.filter(e => e.email !== email))
-      setFeedback({ type: 'ok', text: '삭제되었습니다.' })
+      setFeedback({ type: 'ok', text: t('notif.removedMsg') })
     })
   }
 
@@ -80,7 +82,7 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
         setFeedback({ type: 'err', text: res.error })
         return
       }
-      setFeedback({ type: 'ok', text: '인증 메일을 재발송했습니다.' })
+      setFeedback({ type: 'ok', text: t('notif.resendMsg') })
     })
   }
 
@@ -88,10 +90,10 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
     <div className="rounded-xl border border-border bg-card p-6 space-y-4">
       <div className="flex items-center gap-2">
         <Mail className="h-4 w-4 text-primary" />
-        <h2 className="text-sm font-semibold">견적 알림 수신 이메일</h2>
+        <h2 className="text-sm font-semibold">{t('notif.title')}</h2>
       </div>
       <p className="text-xs text-muted-foreground">
-        가입 이메일 외에 추가 이메일을 등록하면, 모든 견적 알림이 함께 발송됩니다. 최대 5개까지 등록 가능합니다.
+        {t('notif.sub')}
       </p>
 
       {feedback && (
@@ -116,10 +118,10 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
         <div className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-3 py-2.5">
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate">{primaryEmail}</p>
-            <p className="text-xs text-muted-foreground">가입 이메일 · 자동 수신</p>
+            <p className="text-xs text-muted-foreground">{t('notif.primaryLabel')}</p>
           </div>
           <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-xs font-medium text-secondary">
-            <CheckCircle2 className="h-3 w-3" /> 인증완료
+            <CheckCircle2 className="h-3 w-3" /> {t('notif.verified')}
           </span>
         </div>
 
@@ -136,12 +138,12 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
             <div className="flex items-center gap-2 shrink-0">
               {e.verified ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-secondary/15 px-2 py-0.5 text-xs font-medium text-secondary">
-                  <CheckCircle2 className="h-3 w-3" /> 인증완료
+                  <CheckCircle2 className="h-3 w-3" /> {t('notif.verified')}
                 </span>
               ) : (
                 <>
                   <span className="inline-flex items-center gap-1 rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent-foreground">
-                    <AlertCircle className="h-3 w-3" /> 미인증
+                    <AlertCircle className="h-3 w-3" /> {t('notif.unverified')}
                   </span>
                   <button
                     onClick={() => handleResend(e.email)}
@@ -149,7 +151,7 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
                     className="inline-flex items-center gap-1 text-xs text-primary hover:underline disabled:opacity-50"
                     title="인증 메일 재발송"
                   >
-                    <Send className="h-3 w-3" /> 재발송
+                    <Send className="h-3 w-3" /> {t('notif.resend')}
                   </button>
                 </>
               )}
@@ -171,7 +173,7 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
         <div className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 p-3 space-y-2">
           <input
             type="email"
-            placeholder="이메일 주소 (예: my-personal@gmail.com)"
+            placeholder={t('notif.addPh')}
             value={newEmail}
             onChange={e => setNewEmail(e.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:border-primary"
@@ -179,7 +181,7 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
           />
           <input
             type="text"
-            placeholder="라벨 (선택, 예: 개인 메일)"
+            placeholder={t('notif.labelPh')}
             value={newLabel}
             onChange={e => setNewLabel(e.target.value)}
             maxLength={30}
@@ -192,7 +194,7 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
               disabled={pending || !newEmail.trim()}
               className="flex-1 rounded-md bg-accent text-accent-foreground py-2 text-sm font-medium hover:bg-accent/90 disabled:opacity-50"
             >
-              {pending ? '발송 중…' : '인증 메일 발송'}
+              {pending ? t('notif.sending') : t('notif.sendVerify')}
             </button>
             <button
               onClick={() => {
@@ -214,7 +216,7 @@ export function NotificationEmailsSection({ primaryEmail, initial, notice, notic
             className="flex w-full items-center justify-center gap-1 rounded-lg border-2 border-dashed border-border bg-background py-2.5 text-sm text-muted-foreground hover:border-primary hover:text-primary"
           >
             <Plus className="h-4 w-4" />
-            이메일 추가 ({entries.length}/5)
+            {t('notif.addBtn').replace('{n}', String(entries.length))}
           </button>
         )
       )}

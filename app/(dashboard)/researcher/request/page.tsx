@@ -19,9 +19,10 @@ import { PAYMENT_TERMS, paymentTermLabel, type PaymentTermValue } from '@/lib/pa
 import type { SubstanceResult } from '@/app/api/substances/search/route'
 import type { ItemType } from '@/lib/categories'
 import type { EquipmentSubType } from '@/lib/equipment-specs'
+import { useT } from '@/lib/i18n/context'
 import { cn } from '@/lib/utils'
-import { RemainingCreditsBar } from '@/components/remaining-credits-bar'
-import { FlaskConical, Layers, Clock, CalendarClock, ShieldCheck, TriangleAlert } from 'lucide-react'
+import { FlaskConical, Layers, Clock, CalendarClock, ShieldCheck, TriangleAlert, ShieldAlert } from 'lucide-react'
+import { checkRegulated, type RegulatedSubstance } from '@/lib/regulated-substances'
 
 const UNITS = ['mL', 'L', 'g', 'kg', 'mg', 'μg', 'μL', 'ea', '박스', '기타']
 
@@ -54,22 +55,26 @@ const EMPTY: FormState = {
   notes: '',
 }
 
-const BID_MODE_OPTIONS: { value: BidMode; icon: React.ReactNode; label: string; desc: string }[] = [
-  {
-    value: 'open',
-    icon: <Clock className="h-5 w-5" />,
-    label: '선착순형',
-    desc: '마감 기한 없이 연구자가 원하는 시점에 직접 낙찰합니다. 빠른 조달이 필요할 때 적합합니다.',
-  },
-  {
-    value: 'deadline',
-    icon: <CalendarClock className="h-5 w-5" />,
-    label: '기간 마감형',
-    desc: '설정한 마감일까지 입찰을 받고, 이후 최적 견적을 비교해 선택합니다.',
-  },
-]
+// BID_MODE_OPTIONS is defined inside the component (uses t())
 
 export default function SingleRequestPage() {
+  const t = useT()
+
+  const BID_MODE_OPTIONS: { value: BidMode; icon: React.ReactNode; label: string; desc: string }[] = [
+    {
+      value: 'open',
+      icon: <Clock className="h-5 w-5" />,
+      label: t('req.bidModeOpen'),
+      desc: t('req.bidModeOpenDesc'),
+    },
+    {
+      value: 'deadline',
+      icon: <CalendarClock className="h-5 w-5" />,
+      label: t('req.bidModeDeadline'),
+      desc: t('req.bidModeDeadlineDesc'),
+    },
+  ]
+
   const [step, setStep] = useState<Step>('form')
   const [form, setForm] = useState<FormState>(EMPTY)
   const [itemType, setItemType] = useState<ItemType>('reagent')
@@ -99,6 +104,13 @@ export default function SingleRequestPage() {
   const [deliveryCity, setDeliveryCity] = useState('')
   const [paymentTerms, setPaymentTerms] = useState<PaymentTermValue | ''>('')
 
+  // 그룹바이 / 할인요청
+  const [isGroupBuy, setIsGroupBuy] = useState(false)
+  const [discountRequested, setDiscountRequested] = useState(false)
+
+  // 규제물질 체크
+  const [regulationInfo, setRegulationInfo] = useState<RegulatedSubstance | null>(null)
+
   function setSpecField(key: string, value: string) {
     setEquipSpecs(prev => ({ ...prev, [key]: value }))
   }
@@ -110,6 +122,7 @@ export default function SingleRequestPage() {
       casNumber: s.casNumber ?? '',
       molecularFormula: s.molecularFormula ?? '',
     }))
+    setRegulationInfo(checkRegulated(s.casNumber))
   }
 
   function set(field: keyof FormState) {
@@ -132,51 +145,51 @@ export default function SingleRequestPage() {
 
     if (itemType === 'equipment') {
       if (!form.substanceName.trim() && !equipSpecs['device_name']) {
-        setError('장비명을 입력해주세요.')
+        setError(t('req.errDeviceName'))
         return
       }
       if (!equipSubType) {
-        setError('장비 유형을 선택해주세요.')
+        setError(t('req.errEquipType'))
         return
       }
     } else if (itemType === 'supply') {
       if (!supplyTopType) {
-        setError('소모품/실험기구 대분류를 선택해주세요.')
+        setError(t('req.errSupplyTop'))
         return
       }
       if (!supplySubCode) {
-        setError('세부 분류를 선택해주세요.')
+        setError(t('req.errSupplySub'))
         return
       }
       if (!form.substanceName.trim()) {
-        setError('제품명을 입력해주세요.')
+        setError(t('req.errProductName'))
         return
       }
     } else {
       if (!form.substanceName.trim()) {
-        setError('물질명(또는 제품명)을 입력해주세요.')
+        setError(t('req.errSubstanceName'))
         return
       }
       if (itemType === 'protein' && !proteinSubCat) {
-        setError('단백질 분류를 선택해주세요.')
+        setError(t('req.errProteinCat'))
         return
       }
     }
 
     if (!form.qty || Number(form.qty) <= 0) {
-      setError('수량을 올바르게 입력해주세요.')
+      setError(t('req.errQty'))
       return
     }
     if (bidMode === 'deadline' && !form.deadline) {
-      setError('기간 마감형은 입찰 마감일을 입력해주세요.')
+      setError(t('req.errDeadline'))
       return
     }
     if (!deliveryCity.trim()) {
-      setError('배송 도시명을 입력해주세요. (대리점 권역 매칭에 필요합니다)')
+      setError(t('req.errCity'))
       return
     }
     if (!paymentTerms) {
-      setError('결제조건을 선택해주세요.')
+      setError(t('req.errPayment'))
       return
     }
     setStep('preview')
@@ -192,6 +205,8 @@ export default function SingleRequestPage() {
     fd.set('itemType', itemType)
     fd.set('deliveryCity', deliveryCity.trim())
     fd.set('paymentTerms', paymentTerms)
+    fd.set('isGroupBuy', String(isGroupBuy))
+    fd.set('discountRequested', String(discountRequested))
 
     // 단골 공급자 라우팅 + 쿠폰 (mode: open이면 미전송)
     if (routing.mode !== 'open' && routing.supplierCode) {
@@ -221,7 +236,7 @@ export default function SingleRequestPage() {
       })
       fd.set('itemSpecs', JSON.stringify(specs))
       if (!form.substanceName) {
-        fd.set('substanceName', equipSpecs['device_name'] ?? '장비 요청')
+        fd.set('substanceName', equipSpecs['device_name'] ?? t('req.defaultEquipName'))
       }
     }
 
@@ -234,18 +249,18 @@ export default function SingleRequestPage() {
   }
 
   const substanceNameLabel =
-    itemType === 'equipment' ? '장비명'
-    : itemType === 'protein' ? '단백질·제품명'
-    : itemType === 'supply' ? '제품명'
-    : '물질명'
+    itemType === 'equipment' ? t('req.substanceLabelEquip')
+    : itemType === 'protein' ? t('req.substanceLabelProtein')
+    : itemType === 'supply' ? t('req.substanceLabelSupply')
+    : t('req.substanceLabelReagent')
 
   const typeSelector = (
     <div className="flex gap-3 mb-6">
       <div className="flex items-center gap-2 rounded-lg border-2 border-primary bg-primary/5 px-4 py-3 flex-1">
         <FlaskConical className="h-5 w-5 text-primary shrink-0" />
         <div>
-          <div className="font-medium text-sm">단건 요청</div>
-          <div className="text-xs text-muted-foreground">품목 1개</div>
+          <div className="font-medium text-sm">{t('req.singleTitle')}</div>
+          <div className="text-xs text-muted-foreground">{t('req.singleSub')}</div>
         </div>
       </div>
       <Link
@@ -254,62 +269,93 @@ export default function SingleRequestPage() {
       >
         <Layers className="h-5 w-5 text-muted-foreground shrink-0" />
         <div>
-          <div className="font-medium text-sm">묶음 요청</div>
-          <div className="text-xs text-muted-foreground">품목 2개 이상</div>
+          <div className="font-medium text-sm">{t('req.batchTitle')}</div>
+          <div className="text-xs text-muted-foreground">{t('req.batchSub')}</div>
         </div>
       </Link>
     </div>
   )
 
   if (step === 'preview') {
-    const bidModeLabel = bidMode === 'open' ? '선착순형 (연구자 직접 마감)' : '기간 마감형'
+    const bidModeLabel = bidMode === 'open' ? t('req.bidModeOpenFull') : t('req.bidModeDeadline')
     const itemTypeLabelMap: Record<ItemType, string> = {
-      reagent: '화학·바이오 시약',
-      protein: '단백질·펩타이드 시약',
-      supply: '소모품·실험기구',
-      equipment: '장비·기기',
+      reagent: t('req.typeReagent'),
+      protein: t('req.typeProtein'),
+      supply: t('req.typeSupply'),
+      equipment: t('req.typeEquipment'),
     }
     return (
       <div className="max-w-xl">
-        <h1 className="text-2xl font-bold mb-1">요청 확인</h1>
-        <p className="text-sm text-muted-foreground mb-6">내용을 확인하고 게시하세요.</p>
+        <h1 className="text-2xl font-bold mb-1">{t('req.previewTitle')}</h1>
+        <p className="text-sm text-muted-foreground mb-6">{t('req.previewSub')}</p>
 
         <div className="rounded-lg border border-border bg-card divide-y divide-border">
-          <PreviewRow label="품목 유형" value={itemTypeLabelMap[itemType]} />
+          <PreviewRow label={t('req.rowType')} value={itemTypeLabelMap[itemType]} />
           <PreviewRow label={substanceNameLabel} value={form.substanceName || equipSpecs['device_name'] || ''} />
-          {form.casNumber && <PreviewRow label="CAS 번호" value={form.casNumber} mono />}
-          {form.molecularFormula && <PreviewRow label="분자식" value={form.molecularFormula} mono />}
-          {proteinSubCat && <PreviewRow label="단백질 분류" value={proteinSubCat} />}
-          {equipSubType && <PreviewRow label="장비 유형" value={equipSubType} />}
-          <PreviewRow label="수량" value={`${form.qty} ${form.unit}`} />
-          {form.purity && <PreviewRow label="순도 / 등급" value={form.purity} />}
-          {form.volume && <PreviewRow label="용량 규격" value={form.volume} />}
-          <PreviewRow label="입찰 방식" value={bidModeLabel} />
+          {form.casNumber && <PreviewRow label={t('req.rowCas')} value={form.casNumber} mono />}
+          {form.molecularFormula && <PreviewRow label={t('req.rowFormula')} value={form.molecularFormula} mono />}
+          {proteinSubCat && <PreviewRow label={t('req.rowProteinCat')} value={proteinSubCat} />}
+          {equipSubType && <PreviewRow label={t('req.rowEquipType')} value={equipSubType} />}
+          <PreviewRow label={t('req.rowQty')} value={`${form.qty} ${form.unit}`} />
+          {form.purity && <PreviewRow label={t('req.rowPurity')} value={form.purity} />}
+          {form.volume && <PreviewRow label={t('req.rowVolume')} value={form.volume} />}
+          <PreviewRow label={t('req.rowBidMode')} value={bidModeLabel} />
           {form.deadline && (
             <PreviewRow
-              label={bidMode === 'deadline' ? '입찰 마감일' : '납기 희망일'}
+              label={bidMode === 'deadline' ? t('req.rowBidDeadline') : t('req.rowDeliveryDate')}
               value={form.deadline}
             />
           )}
-          {form.deliveryAddress && <PreviewRow label="배송지" value={form.deliveryAddress} />}
-          {deliveryCity && <PreviewRow label="배송 도시 (권역)" value={deliveryCity} />}
-          {paymentTerms && <PreviewRow label="결제조건" value={paymentTermLabel(paymentTerms)} />}
-          {form.notes && <PreviewRow label="추가 요청사항" value={form.notes} />}
+          {form.deliveryAddress && <PreviewRow label={t('req.rowAddress')} value={form.deliveryAddress} />}
+          {deliveryCity && <PreviewRow label={t('req.rowCity')} value={deliveryCity} />}
+          {paymentTerms && <PreviewRow label={t('req.rowPayment')} value={paymentTermLabel(paymentTerms)} />}
+          {isGroupBuy && <PreviewRow label={t('req.rowGroupBuy')} value={t('req.groupBuyOn')} />}
+          {discountRequested && <PreviewRow label={t('req.rowDiscount')} value={t('req.discountOn')} />}
+          {form.notes && <PreviewRow label={t('req.rowNotes')} value={form.notes} />}
         </div>
+
+        {/* 규제물질 경고 */}
+        {regulationInfo && (
+          <div className={cn(
+            'mt-4 flex items-start gap-2 rounded-md border px-3 py-2.5',
+            regulationInfo.level === 'high'
+              ? 'border-red-200 bg-red-50'
+              : 'border-amber-200 bg-amber-50'
+          )}>
+            <ShieldAlert className={cn(
+              'h-4 w-4 shrink-0 mt-0.5',
+              regulationInfo.level === 'high' ? 'text-red-600' : 'text-amber-600'
+            )} />
+            <div className={cn(
+              'text-xs leading-snug',
+              regulationInfo.level === 'high' ? 'text-red-800' : 'text-amber-800'
+            )}>
+              <span className="font-semibold">
+                {regulationInfo.level === 'high' ? '⚠️ 고위험 규제물질 포함' : '관리대상 물질 포함'}
+              </span>
+              {' — '}
+              <span className="font-mono">{regulationInfo.cas}</span> ({regulationInfo.nameKo})
+              <span className="block mt-0.5">
+                적용 규정: {regulationInfo.regs.join(' · ')}
+                {regulationInfo.level === 'high' && ' — 취급 전 기관 허가 여부를 반드시 확인하세요.'}
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 flex items-start gap-2 rounded-md bg-primary/5 border border-primary/20 px-3 py-2.5">
           <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
           <p className="text-xs text-primary leading-snug">
-            입찰가와 낙찰가는 거래 당사자 간에만 공유되며, 다른 공급사에 공개되지 않습니다.
+{t('req.sealedBidShort')}
           </p>
         </div>
 
         {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
         <div className="mt-4 flex gap-3">
-          <Button variant="outline" onClick={() => setStep('form')} disabled={submitting}>수정</Button>
+          <Button variant="outline" onClick={() => setStep('form')} disabled={submitting}>{t('req.editBtn')}</Button>
           <Button onClick={handleSubmit} disabled={submitting}>
-            {submitting ? '게시 중...' : '견적 요청 게시'}
+            {submitting ? t('req.submittingBtn') : t('req.submitBtn')}
           </Button>
         </div>
       </div>
@@ -318,8 +364,8 @@ export default function SingleRequestPage() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="text-2xl font-bold mb-1">견적 요청</h1>
-      <p className="text-sm text-muted-foreground mb-6">요청 유형을 선택하세요.</p>
+      <h1 className="text-2xl font-bold mb-1">{t('req.title')}</h1>
+      <p className="text-sm text-muted-foreground mb-6">{t('req.subtitle')}</p>
 
       {typeSelector}
 
@@ -332,12 +378,11 @@ export default function SingleRequestPage() {
           <div className="flex items-start gap-2 rounded-md border border-orange-300 bg-orange-50 px-3 py-2.5">
             <TriangleAlert className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
             <div className="text-xs text-orange-800 leading-snug">
-              <span className="font-semibold">⚠ HAZMAT 주의</span> — CAS 번호를 반드시 확인하세요.
-              오입력 시 위험물질이 잘못 납품될 수 있습니다.{' '}
+<><span className="font-semibold">{t('req.hazmatTitle')}</span> — {t('req.hazmatDesc')}</>{' '}
               {form.casNumber && (
                 <span className="font-mono font-medium">입력된 CAS: {form.casNumber}</span>
               )}
-              {!form.casNumber && '입력 후 물질명·위험성을 재확인하세요.'}
+              {!form.casNumber && t('req.hazmatCheck')}
             </div>
           </div>
         )}
@@ -346,9 +391,10 @@ export default function SingleRequestPage() {
         {itemType === 'reagent' && (
           <>
             <SubstanceSearch
-              label="물질명 검색 *"
-              placeholder="CAS 번호 또는 물질명 (예: 64-17-5, ethanol)"
+              label={t('req.reagentSearchLabel')}
+              placeholder={t('req.reagentSearchPh')}
               onSelect={handleSubstanceSelect}
+              onRegulationChange={setRegulationInfo}
             />
 
             {form.substanceName && (
@@ -372,12 +418,12 @@ export default function SingleRequestPage() {
 
             {!form.substanceName && (
               <div className="space-y-2">
-                <Label htmlFor="substanceName">물질명 직접 입력 *</Label>
+                <Label htmlFor="substanceName">{t('req.substanceDirectLabel')}</Label>
                 <Input
                   id="substanceName"
                   value={form.substanceName}
                   onChange={set('substanceName')}
-                  placeholder="검색 목록에 없으면 직접 입력"
+                  placeholder={t('req.substanceDirectPh')}
                 />
               </div>
             )}
@@ -398,7 +444,7 @@ export default function SingleRequestPage() {
 
             <div className="space-y-1.5">
               <Label className="text-sm">
-                추천 제품·물질 <span className="text-xs text-muted-foreground">(클릭 시 제품명 자동 입력)</span>
+  {t('req.proteinRecommLabel')} <span className="text-xs text-muted-foreground">{t('req.proteinRecommNote')}</span>
               </Label>
               <div className="flex flex-wrap gap-1.5">
                 {(proteinSubCat ? (PROTEIN_KEYWORDS[proteinSubCat] ?? []) : PROTEIN_GENERAL_KEYWORDS).map(kw => (
@@ -419,12 +465,12 @@ export default function SingleRequestPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="substanceName">제품명 / 단백질명 *</Label>
+              <Label htmlFor="substanceName">{t('req.proteinNameLabel')}</Label>
               <Input
                 id="substanceName"
                 value={form.substanceName}
                 onChange={set('substanceName')}
-                placeholder="위 추천 항목 클릭 또는 직접 입력"
+                placeholder={t('req.proteinNamePh')}
               />
               {form.substanceName && (
                 <button
@@ -467,12 +513,12 @@ export default function SingleRequestPage() {
         {itemType === 'reagent' && (
           <>
             <div className="space-y-2">
-              <Label htmlFor="purity">순도 / 등급</Label>
-              <Input id="purity" value={form.purity} onChange={set('purity')} placeholder="예: 99.9%, ACS grade, HPLC grade" />
+              <Label htmlFor="purity">{t('req.purityLabel')}</Label>
+              <Input id="purity" value={form.purity} onChange={set('purity')} placeholder={t('req.purityPh')} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="volume">용량 규격</Label>
-              <Input id="volume" value={form.volume} onChange={set('volume')} placeholder="예: 500mL 병, 1kg 단위 포장" />
+              <Label htmlFor="volume">{t('req.volumeLabel')}</Label>
+              <Input id="volume" value={form.volume} onChange={set('volume')} placeholder={t('req.volumePh')} />
             </div>
           </>
         )}
@@ -480,25 +526,25 @@ export default function SingleRequestPage() {
         {/* 수량 + 단위 */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <Label htmlFor="qty">수량 *</Label>
-            <Input id="qty" type="number" min="0.001" step="any" value={form.qty} onChange={set('qty')} placeholder="예: 500" required />
+            <Label htmlFor="qty">{t('req.qtyLabel')}</Label>
+            <Input id="qty" type="number" min="0.001" step="any" value={form.qty} onChange={set('qty')} placeholder={t('req.qtyPh')} required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="unit">단위 *</Label>
+            <Label htmlFor="unit">{t('req.unitLabel')}</Label>
             <select
               id="unit"
               value={form.unit}
               onChange={set('unit')}
               className="flex h-9 w-full rounded-md border border-input bg-background px-2.5 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+              {UNITS.map(u => <option key={u} value={u}>{u === '박스' || u === '기타' ? t(`unit.${u}`) : u}</option>)}
             </select>
           </div>
         </div>
 
         {/* 입찰 방식 */}
         <div className="space-y-2">
-          <Label>입찰 방식 *</Label>
+          <Label>{t('req.bidModeLabel')}</Label>
           <div className="grid grid-cols-2 gap-3">
             {BID_MODE_OPTIONS.map(opt => (
               <button
@@ -523,7 +569,7 @@ export default function SingleRequestPage() {
 
         <div className="space-y-2">
           <Label htmlFor="deadline">
-            {bidMode === 'deadline' ? '입찰 마감일 *' : '납기 희망일 (선택)'}
+            {bidMode === 'deadline' ? t('req.deadlineLabel') : t('req.deliveryDateLabel')}
           </Label>
           <Input
             id="deadline"
@@ -534,7 +580,7 @@ export default function SingleRequestPage() {
             required={bidMode === 'deadline'}
           />
           {bidMode === 'open' && (
-            <p className="text-xs text-muted-foreground">선착순형은 마감일 없이 연구자가 직접 낙찰 시점을 결정합니다.</p>
+            <p className="text-xs text-muted-foreground">{t('req.openModeNote')}</p>
           )}
         </div>
 
@@ -543,7 +589,7 @@ export default function SingleRequestPage() {
 
         <AddressSearch
           id="deliveryAddress"
-          label="배송지"
+          label={t('req.deliveryAddrLabel')}
           value={form.deliveryAddress}
           onChange={v => setForm(prev => ({ ...prev, deliveryAddress: v }))}
           onCityChange={setDeliveryCity}
@@ -552,22 +598,22 @@ export default function SingleRequestPage() {
         {/* 배송 도시 (대리점 권역) — 필수 */}
         <div className="space-y-2">
           <Label htmlFor="deliveryCity">
-            배송 도시 <span className="text-destructive">*</span>
-            <span className="ml-1 text-xs font-normal text-muted-foreground">(대리점 권역 매칭)</span>
+{t('req.cityLabel')} <span className="text-destructive">*</span>
+            <span className="ml-1 text-xs font-normal text-muted-foreground">{t('req.cityRequired')}</span>
           </Label>
           <Input
             id="deliveryCity"
             value={deliveryCity}
             onChange={e => setDeliveryCity(e.target.value)}
-            placeholder="예: 서울특별시 관악구"
+            placeholder={t('req.cityPh')}
             required
           />
-          <p className="text-xs text-muted-foreground">주소 검색 시 자동 입력됩니다. 권역 대리점이 견적 가능 여부를 빠르게 판단할 수 있습니다.</p>
+          <p className="text-xs text-muted-foreground">{t('req.cityNote')}</p>
         </div>
 
         {/* 결제조건 — 연구자 선택 (공급자 신뢰도 판단) */}
         <div className="space-y-2">
-          <Label>결제조건 <span className="text-destructive">*</span></Label>
+          <Label>{t('req.paymentLabel')} <span className="text-destructive">*</span></Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {PAYMENT_TERMS.map(t => (
               <button
@@ -584,36 +630,60 @@ export default function SingleRequestPage() {
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">투명한 결제조건은 공급사의 신뢰와 견적 참여를 높입니다.</p>
+          <p className="text-xs text-muted-foreground">{t('req.paymentNote')}</p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="notes">추가 요청사항</Label>
+        {/* 그룹바이 / 할인요청 옵션 */}
+        <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
+          <p className="text-sm font-medium">{t('req.optionsLabel')}</p>
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={isGroupBuy}
+              onChange={e => setIsGroupBuy(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-secondary"
+            />
+            <span className="text-sm">
+              <span className="font-medium">{t('req.groupBuyLabel')}</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">{t('req.groupBuyDesc')}</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={discountRequested}
+              onChange={e => setDiscountRequested(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-amber-500"
+            />
+            <span className="text-sm">
+              <span className="font-medium">{t('req.discountLabel')}</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">{t('req.discountDesc')}</span>
+            </span>
+          </label>
+        </div>
+
+        {/* 요청사항 */}
+        <div>
+          <Label htmlFor="notes">{t('req.notesLabel')}</Label>
           <textarea
             id="notes"
+            name="notes"
             value={form.notes}
-            onChange={set('notes')}
+            onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
             rows={3}
-            placeholder="공급자에게 전달할 특이사항 (포장 방법, 인증서 필요 여부 등)"
-            className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+            placeholder={t('req.notesPh')}
+            className="w-full mt-1.5 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
           />
-        </div>
-
-        <div className="flex items-start gap-2 rounded-md bg-primary/5 border border-primary/20 px-3 py-2.5">
-          <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <p className="text-xs text-primary leading-snug">
-            <span className="font-semibold">낙찰가 비공개 원칙</span> — 입찰가와 낙찰가는 거래 당사자에게만 공유되며,
-            다른 공급사에는 공개되지 않습니다. 나라장터와 달리 민간 플랫폼으로서 비공개를 원칙으로 합니다.
-          </p>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <Button type="submit" className="w-full">미리보기 →</Button>
+        <div className="pt-2">
+          <Button type="submit" disabled={submitting}>
+            {submitting ? t('req.submittingBtn') : t('req.submitBtn')}
+          </Button>
+        </div>
       </form>
-
-      {/* 잔여 크레딧 · 무료 한도 */}
-      <RemainingCreditsBar />
     </div>
   )
 }

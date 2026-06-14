@@ -3,8 +3,10 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { deleteAccount } from '@/lib/actions/auth'
+import { useT } from '@/lib/i18n/context'
 
 export function DeleteAccountButton({ email }: { email: string }) {
+  const t = useT()
   const router = useRouter()
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
@@ -26,7 +28,7 @@ export function DeleteAccountButton({ email }: { email: string }) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        계속하려면 이메일 주소 <span className="font-mono font-medium text-foreground">{email}</span>을 입력하세요.
+        {t('del.hint')} <span className="font-mono font-medium text-foreground">{email}</span>
       </p>
       <input
         type="email"
@@ -41,7 +43,7 @@ export function DeleteAccountButton({ email }: { email: string }) {
         disabled={confirm !== email || loading}
         className="inline-flex items-center justify-center rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground shadow hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? '탈퇴 처리 중…' : '회원탈퇴'}
+        {loading ? t('del.deleting') : t('del.btn')}
       </button>
     </div>
   )

@@ -11,8 +11,6 @@ type ResearcherProfileInsert = Database['public']['Tables']['researcher_profiles
 type SupplierProfileInsert = Database['public']['Tables']['supplier_profiles']['Insert']
 
 async function checkPhoneVerified(phone: string): Promise<boolean> {
-  // Upstash Redis auto-parses JSON on retrieval, so '1' stored as string
-  // may come back as number 1. Check for existence (non-null) instead of exact value.
   const flag = await redis.get(`otp:verified:${phone}`)
   return flag != null
 }
@@ -37,7 +35,6 @@ export async function login(formData: FormData) {
 
   if (!data.user) return { error: '로그인에 실패했습니다.' }
 
-  // user_metadata.user_type 기준으로 라우팅 (DB 프로필 존재 여부와 무관하게 정확히 동작)
   const userType = data.user.user_metadata?.user_type
   return { destination: userType === 'supplier' ? '/supplier/board' : '/researcher/board' }
 }
@@ -81,7 +78,6 @@ export async function signupResearcher(formData: FormData) {
     return { error: '가입 중 오류가 발생했습니다.' }
   }
 
-  // admin client 사용: RLS 우회 + public.users 트리거 실행 후 바로 insert 가능
   const admin = createAdminClient()
 
   const profileData: ResearcherProfileInsert = {
@@ -98,16 +94,14 @@ export async function signupResearcher(formData: FormData) {
     console.error('[signup] researcher_profiles insert 실패:', profileError.message)
   }
 
-  // 초대 코드 처리 — 초대자에게 크레딧 적립 (실패해도 가입은 정상 완료)
   if (referralCode) {
     try {
-      await processReferralSignup(referralCode, data.user.id, email)
+      await processReferralSignup(referralCode, data.user.id, email, 'researcher')
     } catch (e) {
       console.error('[signup] 초대 처리 실패:', e)
     }
   }
 
-  // Consume the verified flag so it can't be reused
   await redis.del(`otp:verified:${phone}`)
 
   return { emailPending: true, email }
@@ -135,13 +129,24 @@ export async function signupSupplier(formData: FormData) {
 
   // 국내/해외 구분 + 해외 전용 필드
   const origin = (formData.get('origin') as string) === 'overseas' ? 'overseas' : 'domestic'
-  const overseasSupplyType = (formData.get('overseasSupplyType') as string) || null  // 'chemical' | 'equipment'
+  const overseasSupplyType = (formData.get('overseasSupplyType') as string) || null
   const country = (formData.get('country') as string) || null
   const orType = (formData.get('orType') as string) || null
   const orCompanyName = (formData.get('orCompanyName') as string) || null
   const orBusinessNumber = ((formData.get('orBusinessNumber') as string) || '').replace(/-/g, '') || null
   const equipmentHasChemicals = formData.get('equipmentHasChemicals') === 'true'
   const kcCertAcknowledged = formData.get('kcCertAcknowledged') === 'true'
+
+  // 국가별 규제 준수 (Task 37)
+  const countryCode = (formData.get('country_code') as string) || (origin === 'domestic' ? 'KR' : null)
+  let regulationAcks: Record<string, boolean> = {}
+  let regulationPermitNumbers: Record<string, string> = {}
+  try {
+    const acksStr = formData.get('regulation_acks') as string
+    if (acksStr) regulationAcks = JSON.parse(acksStr)
+    const permitStr = formData.get('regulation_permit_numbers') as string
+    if (permitStr) regulationPermitNumbers = JSON.parse(permitStr)
+  } catch { /* ignore parse errors */ }
 
   // 전화 인증: 국내는 한국 SMS OTP 필수, 해외는 일반 연락처 허용
   if (origin === 'domestic') {
@@ -170,8 +175,34 @@ export async function signupSupplier(formData: FormData) {
     return { error: '가입 중 오류가 발생했습니다.' }
   }
 
-  // admin client 사용: RLS 우회 + public.users 트리거 실행 후 바로 insert 가능
   const admin = createAdminClient()
+
+  // 규제 서류 파일 업로드 → supplier-permits/{userId}/{regId}.ext
+  const regulationFileUrls: Record<string, string> = {}
+  for (const [key, value] of Array.from(formData.entries())) {
+    if (key.startsWith('permit_file_') && value instanceof File && value.size > 0) {
+      const regId = key.slice('permit_file_'.length)
+      const ext = value.name.split('.').pop()?.toLowerCase() || 'pdf'
+      const filePath = `${data.user.id}/${regId}.${ext}`
+      const bytes = await value.arrayBuffer()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: uploadData, error: uploadError } = await (admin as any)
+        .storage
+        .from('supplier-permits')
+        .upload(filePath, bytes, { contentType: value.type || 'application/pdf', upsert: true })
+      if (!uploadError && uploadData) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: { publicUrl } } = (admin as any).storage
+          .from('supplier-permits')
+          .getPublicUrl(filePath)
+        regulationFileUrls[`${regId}_file`] = publicUrl
+      } else if (uploadError) {
+        console.error(`[signup] 규제서류 업로드 실패 [${regId}]:`, uploadError.message)
+      }
+    }
+  }
+  // 파일 URL을 regulation_permit_numbers에 병합 (키: {regId}_file)
+  regulationPermitNumbers = { ...regulationPermitNumbers, ...regulationFileUrls }
 
   const profileData: SupplierProfileInsert = {
     user_id: data.user.id,
@@ -186,7 +217,7 @@ export async function signupSupplier(formData: FormData) {
     contact_name: contactName,
     contact_phone: contactPhone || null,
   }
-  // 해외 공급자 필드 추가 (타입 정의에 없을 수 있으므로 별도 병합)
+
   const overseasFields = origin === 'overseas'
     ? {
         origin,
@@ -203,7 +234,13 @@ export async function signupSupplier(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: profileError } = await (admin as any)
     .from('supplier_profiles')
-    .insert({ ...profileData, ...overseasFields })
+    .insert({
+      ...profileData,
+      ...overseasFields,
+      country_code: countryCode,
+      regulation_acks: regulationAcks,
+      regulation_permit_numbers: regulationPermitNumbers,
+    })
 
   if (profileError) {
     if (profileError.message.includes('unique') && profileError.message.includes('contact_phone')) {
@@ -212,16 +249,14 @@ export async function signupSupplier(formData: FormData) {
     console.error('[signup] supplier_profiles insert 실패:', profileError.message)
   }
 
-  // 초대 코드 처리 — 초대자에게 크레딧 적립 (실패해도 가입은 정상 완료)
   if (referralCode) {
     try {
-      await processReferralSignup(referralCode, data.user.id, email)
+      await processReferralSignup(referralCode, data.user.id, email, 'supplier')
     } catch (e) {
       console.error('[signup] 초대 처리 실패:', e)
     }
   }
 
-  // Consume the verified flag (국내 OTP만)
   if (origin === 'domestic' && contactPhone) {
     await redis.del(`otp:verified:${contactPhone}`)
   }
@@ -257,4 +292,24 @@ export async function deleteAccount() {
 
   await supabase.auth.signOut()
   return { success: true }
+}
+
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<{ ok: boolean; error?: string }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user?.email) return { ok: false, error: '로그인이 필요합니다.' }
+  if (newPassword.length < 8) return { ok: false, error: '새 비밀번호는 8자 이상이어야 합니다.' }
+
+  const { error: signInErr } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  })
+  if (signInErr) return { ok: false, error: '현재 비밀번호가 올바르지 않습니다.' }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
 }

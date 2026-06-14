@@ -1,20 +1,41 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { claimLabGroup, type LabGroupStatus } from '@/lib/actions/lab-group'
-import { FlaskConical, Users, Copy, Check } from 'lucide-react'
+import { requestCoupon } from '@/lib/actions/researcher-coupons'
+import { FlaskConical, Users, Copy, Check, ShoppingCart, Ticket, Star } from 'lucide-react'
+import { useT } from '@/lib/i18n/context'
 
-export function LabGroupWidget({ status: initial }: { status: LabGroupStatus }) {
+export type FollowedSupplierItem = { supplierId: string; companyName: string }
+
+interface Props {
+  status: LabGroupStatus
+  groupBuyCount?: number
+  preferredSuppliers?: FollowedSupplierItem[]
+  couponRequestStatuses?: Record<string, 'pending' | 'fulfilled' | 'declined'>
+}
+
+export function LabGroupWidget({
+  status: initial,
+  groupBuyCount = 0,
+  preferredSuppliers = [],
+  couponRequestStatuses = {},
+}: Props) {
+  const t = useT()
   const [status, setStatus] = useState(initial)
   const [name, setName] = useState('')
   const [pending, startTransition] = useTransition()
   const [err, setErr] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [requestedMap, setRequestedMap] = useState<Record<string, 'pending' | 'fulfilled' | 'declined'>>(couponRequestStatuses)
+  const [couponPending, setCouponPending] = useState<string | null>(null)
 
   const pct = Math.min(100, Math.round((status.peerCount / status.threshold) * 100))
   const eligible = status.peerCount >= status.threshold
+  const hasPreferred = preferredSuppliers.length > 0
 
   async function claim() {
     setErr(null)
@@ -22,11 +43,11 @@ export function LabGroupWidget({ status: initial }: { status: LabGroupStatus }) 
       const r = await claimLabGroup(name)
       if (!r.ok) {
         setErr(r.reason === 'threshold_not_met'
-          ? `같은 기관·학과 인증 연구자 ${r.count ?? 0}명 / ${status.threshold}명 필요`
-          : r.reason === 'no_institution' ? '소속 기관 정보가 비어 있습니다.' : `실패: ${r.reason}`)
+          ? t('lg.errThreshold').replace('{n}', String(r.count ?? 0)).replace('{threshold}', String(status.threshold))
+          : r.reason === 'no_institution' ? t('lg.errNoInstitution') : t('lg.errGeneric').replace('{reason}', r.reason ?? ''))
         return
       }
-      setStatus({ ...status, joined: true, isLeader: true, group: { id: r.labId, name: name || (status.institution ?? '연구실'), code: r.code, memberCount: r.count } })
+      setStatus({ ...status, joined: true, isLeader: true, group: { id: r.labId, name: name || (status.institution ?? t('lg.title')), code: r.code, memberCount: r.count } })
     })
   }
 
@@ -39,14 +60,21 @@ export function LabGroupWidget({ status: initial }: { status: LabGroupStatus }) 
     } catch { /* 무시 */ }
   }
 
+  async function handleRequestCoupon(supplierId: string) {
+    setCouponPending(supplierId)
+    const r = await requestCoupon(supplierId)
+    if (r.ok) setRequestedMap(prev => ({ ...prev, [supplierId]: 'pending' }))
+    setCouponPending(null)
+  }
+
   return (
     <div className="rounded-xl border-2 border-secondary/40 bg-gradient-to-br from-secondary/5 to-primary/5 p-5">
       <div className="flex items-center gap-2 mb-1">
         <FlaskConical className="h-4 w-4 text-secondary" />
-        <h3 className="font-bold text-foreground">랩 그룹</h3>
+        <h3 className="font-bold text-foreground">{t('lg.title')}</h3>
         {status.group && (
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-secondary/20 text-secondary">
-            {status.isLeader ? '리더' : '멤버'}
+            {status.isLeader ? t('lg.leader') : t('lg.member')}
           </span>
         )}
       </div>
@@ -57,16 +85,17 @@ export function LabGroupWidget({ status: initial }: { status: LabGroupStatus }) 
           {status.department ? <> · {status.department}</> : null}
         </p>
       ) : (
-        <p className="text-xs text-amber-600 mb-3">설정에서 소속 기관·학과를 입력하면 랩 그룹을 만들 수 있습니다.</p>
+        <p className="text-xs text-amber-600 mb-3">{t('lg.noAffil')}</p>
       )}
 
       {status.group ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          {/* 그룹 코드 / 인원 */}
           <div className="rounded-lg border border-border bg-background p-3">
             <div className="flex items-baseline justify-between mb-1">
               <span className="text-[11px] text-muted-foreground">{status.group.name}</span>
               <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
-                <Users className="h-3 w-3" /> {status.group.memberCount}명
+                <Users className="h-3 w-3" /> {t('lg.memberCount').replace('{n}', String(status.group.memberCount))}
               </span>
             </div>
             {status.group.code && (
@@ -78,19 +107,80 @@ export function LabGroupWidget({ status: initial }: { status: LabGroupStatus }) 
           {status.group.code && (
             <Button size="sm" variant="outline" onClick={copy} className="w-full">
               {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
-              {copied ? '복사됨' : '랩 가입 링크 복사'}
+              {copied ? t('lg.copied') : t('lg.copyLink')}
             </Button>
           )}
+
+          {/* 그룹 바이 요약 */}
+          {groupBuyCount > 0 && (
+            <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-3 flex items-start gap-2.5">
+              <ShoppingCart className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-foreground">{t('lg.groupBuyActive').replace('{n}', String(groupBuyCount))}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                  {t('lg.groupBuyDesc')}
+                </p>
+              </div>
+              <Link href="/researcher/marketplace">
+                <Button size="sm" variant="outline" className="h-7 text-xs shrink-0">{t('lg.viewBtn')}</Button>
+              </Link>
+            </div>
+          )}
+
+          {/* 단골 공급사 쿠폰 요청 / 초대 CTA */}
+          {hasPreferred ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800/30 p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Ticket className="h-4 w-4 text-amber-500 shrink-0" />
+                <span className="text-xs font-semibold text-foreground">{t('lg.couponReqTitle')}</span>
+              </div>
+              <div className="space-y-2">
+                {preferredSuppliers.map(s => {
+                  const reqStatus = requestedMap[s.supplierId]
+                  return (
+                    <div key={s.supplierId} className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-foreground truncate flex items-center gap-1">
+                        <Star className="h-3 w-3 text-secondary fill-secondary shrink-0" />
+                        {s.companyName}
+                      </span>
+                      {reqStatus === 'fulfilled' ? (
+                        <span className="text-[11px] text-secondary font-medium shrink-0">{t('lg.couponIssued')}</span>
+                      ) : reqStatus === 'pending' ? (
+                        <span className="text-[11px] text-muted-foreground shrink-0">{t('lg.couponPending')}</span>
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-6 text-[11px] px-2 shrink-0"
+                          disabled={couponPending === s.supplierId}
+                          onClick={() => handleRequestCoupon(s.supplierId)}
+                        >
+                          {couponPending === s.supplierId ? '…' : t('lg.couponReqBtn')}
+                        </Button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border p-3">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                <span className="font-semibold text-foreground">{t('lg.noPreferred')}</span>{' '}
+                {t('lg.noPreferredHint')}
+              </p>
+            </div>
+          )}
+
           <p className="text-[11px] text-muted-foreground leading-snug">
-            같은 기관·학과 동료들이 이 코드로 가입하면 자동으로 랩에 합류합니다.
-            랩 단위 견적·통계 기능은 단계적으로 확장됩니다.
+            {t('lg.joinHint')}
           </p>
         </div>
       ) : (
         <>
           <div className="mb-3">
             <div className="flex items-baseline justify-between mb-1">
-              <span className="text-xs text-muted-foreground">같은 기관·학과 인증 연구자</span>
+              <span className="text-xs text-muted-foreground">{t('lg.peerLabel')}</span>
               <span className="text-sm font-bold text-foreground">{status.peerCount} / {status.threshold}명</span>
             </div>
             <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
@@ -101,22 +191,32 @@ export function LabGroupWidget({ status: initial }: { status: LabGroupStatus }) 
           {eligible && status.institution ? (
             <div className="space-y-2">
               <Input
-                placeholder={`랩 이름 (예: ${status.institution} ${status.department ?? ''} ○○연구실)`}
+                placeholder={`${t('lg.createBtn').replace('🧪 ', '')} (${status.institution} ${status.department ?? ''})`}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={80}
               />
               <Button onClick={claim} disabled={pending} className="w-full">
-                {pending ? '생성 중…' : '🧪 랩 그룹 생성하기'}
+                {pending ? t('lg.creating') : t('lg.createBtn')}
               </Button>
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              {Math.max(0, status.threshold - status.peerCount)}명 더 모이면 랩 그룹을 만들 수 있습니다.
+              {t('lg.needMore').replace('{n}', String(Math.max(0, status.threshold - status.peerCount)))}
             </p>
           )}
 
           {err && <p className="text-xs text-destructive mt-2">{err}</p>}
+
+          {/* 단골 공급사 없을 때 초대 CTA */}
+          {!hasPreferred && (
+            <div className="mt-3 rounded-lg border border-dashed border-border p-3">
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                <span className="font-semibold text-foreground">단골 공급사가 없습니다.</span>{' '}
+                아래 초대 코드로 공급사를 초대하면 단골 관계가 자동으로 형성됩니다.
+              </p>
+            </div>
+          )}
         </>
       )}
     </div>

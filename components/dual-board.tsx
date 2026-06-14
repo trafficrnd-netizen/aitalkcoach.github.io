@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { FileText, Megaphone, Clock, MapPin } from 'lucide-react'
+import { FileText, Megaphone, Clock, MapPin, ShoppingCart, Tag } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { CategorySearch, type SearchFilter } from '@/components/category-search'
 import { useI18n } from '@/lib/i18n/context'
@@ -18,6 +18,9 @@ export type BoardRequest = {
   created_at: string
   item_count: number
   bid_count: number
+  delivery_city?: string | null
+  is_group_buy?: boolean | null
+  discount_requested?: boolean | null
 }
 
 export type BoardAd = {
@@ -143,9 +146,19 @@ export function DualBoard({ role, requests, ads, myAdIds = new Set() }: Props) {
                         )}
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-                        {req.delivery_address && (
+                        {req.delivery_city && (
                           <span className="flex items-center gap-0.5">
-                            <MapPin className="h-3 w-3" />{req.delivery_address.slice(0, 10)}
+                            <MapPin className="h-3 w-3" />{req.delivery_city}
+                          </span>
+                        )}
+                        {req.is_group_buy && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary/15 px-1.5 py-0.5 text-[10px] font-medium text-secondary">
+                            <ShoppingCart className="h-2.5 w-2.5" /> 그룹바이
+                          </span>
+                        )}
+                        {req.discount_requested && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                            <Tag className="h-2.5 w-2.5" /> 할인요청
                           </span>
                         )}
                         <span>{t('bd.bidsN').replace('{n}', String(req.bid_count))}</span>

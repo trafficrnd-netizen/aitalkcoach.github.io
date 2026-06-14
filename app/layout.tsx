@@ -11,16 +11,13 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 const BASE_URL = 'https://ai-traffic.kr'
 
-// 한/영 병기 — 링크 공유 시 크롤러가 1회만 읽어가므로 두 언어를 함께 노출
 const TITLE_KO = 'BidVibe — 연구자·공급사 매칭 플랫폼'
 const TITLE_BILINGUAL = 'BidVibe — 요청하면 견적이 다~ 온다 | Researcher–Supplier Matching'
 const DESC_BILINGUAL =
   '요청하면 견적이 다~ 온다. 연구자-공급사 매칭 플랫폼. 수수료 없는 비공개 역경매로 쉽게 해보세요. ' +
   '· Request it — quotes come pouring in. A researcher–supplier matching platform. Commission-free sealed-bid reverse auctions.'
 
-// OG 카드 이미지 — 글자가 크게 보이도록 전용 카피 전달
-const OG_IMAGE = '/og?title=' + encodeURIComponent('요청하면 견적이 다~ 온다')
-  + '&sub=' + encodeURIComponent('연구자-공급사 매칭 · 수수료 없는 비공개 역경매')
+const OG_IMAGE = '/og-image.jpg'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -32,6 +29,16 @@ export const metadata: Metadata = {
   keywords: ['연구실 시약', '소모품 역경매', '실험실 장비 조달', 'B2B 조달', '시약 견적', '연구실 구매', 'BidVibe', 'ai-traffic', 'lab procurement', 'reverse auction', 'reagent quote'],
   authors: [{ name: 'BidVibe', url: BASE_URL }],
   creator: 'BidVibe',
+  icons: {
+    icon: [
+      { url: '/favicon.ico',       sizes: '16x16 32x32 48x48' },
+      { url: '/favicon.svg',       type: 'image/svg+xml' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple:    [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: '/favicon.ico',
+  },
   openGraph: {
     type: 'website',
     locale: 'ko_KR',
@@ -62,11 +69,9 @@ export const metadata: Metadata = {
     canonical: BASE_URL,
   },
   verification: {
-    // 네이버: searchadvisor.naver.com에서 발급받은 키로 교체
     other: {
       'naver-site-verification': 'NAVER_VERIFICATION_KEY_PLACEHOLDER',
     },
-    // 구글: search.google.com/search-console에서 발급받은 키로 교체
     google: 'GOOGLE_VERIFICATION_KEY_PLACEHOLDER',
   },
 }

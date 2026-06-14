@@ -23,7 +23,7 @@ export default async function MarketplacePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: requests } = await (supabase as any)
     .from('requests')
-    .select('id, title, type, deadline, delivery_address, created_at, notes, item_type')
+    .select('id, title, type, deadline, delivery_address, delivery_city, is_group_buy, discount_requested, created_at, notes, item_type, user_id')
     .eq('status', 'open')
     .order('created_at', { ascending: false })
     .limit(60)
@@ -31,6 +31,14 @@ export default async function MarketplacePage() {
   const requestIds: string[] = (requests ?? []).map((r: { id: string }) => r.id)
 
   // 품목 수 + 입찰 수 + 내 입찰을 병렬 조회
+  // 단골 연구자 ID 조회 (supplier_followers)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: followRows } = await (supabase as any)
+    .from('supplier_followers')
+    .select('researcher_id')
+    .eq('supplier_id', user.id)
+  const preferredResearcherIds = new Set<string>((followRows ?? []).map((r: { researcher_id: string }) => r.researcher_id))
+
   const [{ data: itemCounts }, { data: bidCounts }, { data: myBids }] = await Promise.all([
     requestIds.length
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,6 +124,7 @@ export default async function MarketplacePage() {
         itemCountMap={itemCountMap}
         bidCountMap={bidCountMap}
         myBidSet={myBidList}
+        preferredResearcherIds={preferredResearcherIds}
       />
 
       {/* 잔여 크레딧 · 무료 한도 */}

@@ -9,6 +9,7 @@ import { ArrowLeft, ImagePlus, X, Info, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+import { useT } from '@/lib/i18n/context'
 
 const CATEGORIES = [
   '화학·바이오 시약',
@@ -18,7 +19,15 @@ const CATEGORIES = [
   '안전용품',
   '기타',
 ]
-const REGIONS = ['전국', '서울', '경기', '인천', '부산', '대구', '대전', '광주', '기타 지방']
+const REGIONS = [
+  '전국',
+  '서울특별시', '인천광역시', '경기도',
+  '강원특별자치도',
+  '충청북도', '충청남도', '대전광역시', '세종특별자치시',
+  '전북특별자치도', '전라남도', '광주광역시',
+  '경상북도', '경상남도', '대구광역시', '부산광역시', '울산광역시',
+  '제주특별자치도',
+]
 
 const MAX_DESC = 150
 const MAX_IMAGE_MB = 2
@@ -36,6 +45,7 @@ type TokenInfo = {
 }
 
 export default function NewAdPage() {
+  const t = useT()
   const router = useRouter()
   const [selectedCats, setSelectedCats] = useState<string[]>([])
   const [selectedRegions, setSelectedRegions] = useState<string[]>([])
@@ -68,12 +78,12 @@ export default function NewAdPage() {
     if (!file) return
     setImageError('')
     if (file.size > MAX_IMAGE_BYTES) {
-      setImageError(`이미지는 ${MAX_IMAGE_MB}MB 이하만 등록 가능합니다.`)
+      setImageError(t('ads.errImageSize').replace('{n}', String(MAX_IMAGE_MB)))
       e.target.value = ''
       return
     }
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      setImageError('JPG, PNG, WEBP 형식만 허용됩니다.')
+      setImageError(t('ads.errImageFormat'))
       e.target.value = ''
       return
     }
@@ -93,7 +103,7 @@ export default function NewAdPage() {
     setError('')
 
     if (!tokenInfo || tokenInfo.available < 1) {
-      setError('사용 가능한 광고 토큰이 없습니다.')
+      setError(t('ads.errNoToken'))
       return
     }
 
@@ -107,7 +117,7 @@ export default function NewAdPage() {
       setUploading(true)
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { setError('로그인이 필요합니다.'); setUploading(false); return }
+      if (!user) { setError(t('ads.errLoginRequired')); setUploading(false); return }
 
       const ext = imageFile.name.split('.').pop()
       const path = `${user.id}/${Date.now()}.${ext}`
@@ -117,7 +127,7 @@ export default function NewAdPage() {
       setUploading(false)
 
       if (uploadErr) {
-        setError('이미지 업로드에 실패했습니다. 다시 시도해주세요.')
+        setError(t('ads.errUploadFailed'))
         return
       }
 
@@ -143,13 +153,13 @@ export default function NewAdPage() {
     <div className="max-w-lg">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/supplier/board" className={buttonVariants({ variant: 'ghost', size: 'sm' })}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> 게시판
+          <ArrowLeft className="h-4 w-4 mr-1" /> {t('ads.back')}
         </Link>
       </div>
 
-      <h1 className="text-2xl font-bold mb-1">광고 등록</h1>
+      <h1 className="text-2xl font-bold mb-1">{t('ads.title')}</h1>
       <p className="text-sm text-muted-foreground mb-4">
-        취급 품목과 연락처를 게시해 연구자에게 알리세요.
+        {t('ads.sub')}
       </p>
 
       {/* 토큰 현황 */}
@@ -159,31 +169,31 @@ export default function NewAdPage() {
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-primary shrink-0" />
               <span className="font-medium">
-                사용 가능한 광고 토큰: <span className={`text-lg font-bold ${noToken ? 'text-destructive' : 'text-primary'}`}>{tokenInfo.available}개</span>
+                {t('ads.tokenAvail')} <span className={`text-lg font-bold ${noToken ? 'text-destructive' : 'text-primary'}`}>{tokenInfo.available}</span>
               </span>
             </div>
             {tokenInfo.isEarlybird && (
-              <span className="text-xs text-amber-600 font-medium bg-amber-50 border border-amber-200 rounded px-2 py-0.5">🎁 얼리버드</span>
+              <span className="text-xs text-amber-600 font-medium bg-amber-50 border border-amber-200 rounded px-2 py-0.5">🎁 {t('ads.earlybird')}</span>
             )}
           </div>
           {tokenInfo.isEarlybird && (
             <p className="text-xs text-muted-foreground mt-1.5">
-              얼리버드 기간 중 매주 1개씩 자동 지급됩니다.
+              {t('ads.earlybirdNote')}
               {tokenInfo.nextTokenAt && (
-                <> 다음 지급 예정: <strong>{new Date(tokenInfo.nextTokenAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</strong></>
+                <> {t('ads.earlybirdNext')} <strong>{new Date(tokenInfo.nextTokenAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</strong></>
               )}
             </p>
           )}
           {!tokenInfo.isEarlybird && (
             <p className="text-xs text-muted-foreground mt-1.5">
               {tokenInfo.plan === 'free'
-                ? 'Basic 또는 Pro 플랜 구독 시 광고 토큰이 지급됩니다.'
-                : `이번 달 ${tokenInfo.monthlyAlloc}개 지급 (${tokenInfo.plan} 기본 + 평점 보너스 ${tokenInfo.ratingBonus ?? 0}개) · 사용 ${tokenInfo.usedThisMonth ?? 0}개`
+                ? t('ads.planFreeNote')
+                : `${tokenInfo.monthlyAlloc} (${tokenInfo.plan} + ${tokenInfo.ratingBonus ?? 0}) · ${tokenInfo.usedThisMonth ?? 0}`
               }
             </p>
           )}
           {noToken && tokenInfo.plan === 'free' && !tokenInfo.isEarlybird && (
-            <Link href="/supplier/billing" className="mt-2 inline-block text-xs text-primary underline font-medium">플랜 업그레이드 →</Link>
+            <Link href="/supplier/billing" className="mt-2 inline-block text-xs text-primary underline font-medium">{t('ads.upgradeLink')}</Link>
           )}
         </div>
       )}
@@ -192,9 +202,8 @@ export default function NewAdPage() {
       <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 mb-6 flex items-start gap-3">
         <Mail className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
         <div className="text-xs text-muted-foreground">
-          <span className="font-medium text-foreground">배너 광고 (프리미엄)</span>는 별도 문의로 진행합니다.{' '}
+          <span className="font-medium text-foreground">{t('ads.bannerLabel')}</span>{t('ads.bannerDesc')}{' '}
           <a href="mailto:contact@ai-traffic.kr" className="text-primary underline font-medium">contact@ai-traffic.kr</a>
-          로 연락주시면 맞춤 제안을 드립니다.
         </div>
       </div>
 
@@ -202,11 +211,11 @@ export default function NewAdPage() {
         {/* 제목 */}
         <div>
           <label className="text-sm font-medium mb-1.5 block">
-            광고 제목 <span className="text-destructive">*</span>
+            {t('ads.titleLabel')} <span className="text-destructive">*</span>
           </label>
           <Input
             name="title"
-            placeholder="예: 유기용매·일반화학시약 전문 공급 — 당일 출고 가능"
+            placeholder={t('ads.titlePh')}
             required
             maxLength={80}
             disabled={loading}
@@ -216,7 +225,7 @@ export default function NewAdPage() {
         {/* 이미지 업로드 */}
         <div>
           <label className="text-sm font-medium mb-1.5 block">
-            광고 이미지 <span className="text-xs text-muted-foreground font-normal">(선택 · JPG/PNG/WEBP · 최대 {MAX_IMAGE_MB}MB)</span>
+            {t('ads.imageLabel')} <span className="text-xs text-muted-foreground font-normal">(JPG/PNG/WEBP · {MAX_IMAGE_MB}MB)</span>
           </label>
           {!imagePreview ? (
             <button
@@ -225,7 +234,7 @@ export default function NewAdPage() {
               className="flex items-center justify-center gap-2 w-full h-28 rounded-lg border-2 border-dashed border-border bg-muted/30 text-muted-foreground text-sm hover:border-primary/50 hover:bg-primary/5 transition-colors"
             >
               <ImagePlus className="h-5 w-5" />
-              이미지 선택
+              {t('ads.imageSelectBtn')}
             </button>
           ) : (
             <div className="relative w-full h-40 rounded-lg overflow-hidden border border-border bg-muted">
@@ -250,26 +259,26 @@ export default function NewAdPage() {
           {imageError && <p className="text-xs text-destructive mt-1">{imageError}</p>}
         </div>
 
-        {/* 상세 설명 (150자 제한) */}
+        {/* 상세 설명 */}
         <div>
-          <label className="text-sm font-medium mb-1.5 block">상세 설명</label>
+          <label className="text-sm font-medium mb-1.5 block">{t('ads.descLabel')}</label>
           <textarea
             name="description"
             rows={3}
             value={desc}
             onChange={e => setDesc(e.target.value.slice(0, MAX_DESC))}
-            placeholder="취급 브랜드, 강점, 최소 주문 수량, 특이사항 등"
+            placeholder={t('ads.descPh')}
             disabled={loading}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
           />
           <p className={`text-xs mt-0.5 text-right ${desc.length >= MAX_DESC ? 'text-destructive' : 'text-muted-foreground'}`}>
-            {desc.length} / {MAX_DESC}자
+            {desc.length} / {MAX_DESC}
           </p>
         </div>
 
         {/* 카테고리 */}
         <div>
-          <label className="text-sm font-medium mb-2 block">취급 카테고리</label>
+          <label className="text-sm font-medium mb-2 block">{t('ads.catLabel')}</label>
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map(c => (
               <button key={c} type="button" onClick={() => toggleCat(c)}
@@ -278,7 +287,7 @@ export default function NewAdPage() {
                     ? 'bg-primary text-primary-foreground border-primary'
                     : 'border-border bg-background text-muted-foreground hover:border-primary/50'
                 }`}>
-                {c}
+                {t(`adcat.${c}`)}
               </button>
             ))}
           </div>
@@ -286,7 +295,7 @@ export default function NewAdPage() {
 
         {/* 지역 */}
         <div>
-          <label className="text-sm font-medium mb-2 block">납품 가능 지역</label>
+          <label className="text-sm font-medium mb-2 block">{t('ads.regionLabel')}</label>
           <div className="flex flex-wrap gap-2">
             {REGIONS.map(r => (
               <button key={r} type="button" onClick={() => toggleRegion(r)}
@@ -295,7 +304,7 @@ export default function NewAdPage() {
                     ? 'bg-amber-500 text-white border-amber-500'
                     : 'border-border bg-background text-muted-foreground hover:border-amber-400'
                 }`}>
-                {r}
+                {t(`region.${r}`)}
               </button>
             ))}
           </div>
@@ -303,15 +312,15 @@ export default function NewAdPage() {
 
         {/* 연락처 */}
         <div>
-          <label className="text-sm font-medium mb-1.5 block">연락처 (선택)</label>
-          <Input name="contactInfo" placeholder="예: 02-1234-5678 또는 sales@company.kr" disabled={loading} />
-          <p className="text-xs text-muted-foreground mt-1">게시판에 공개됩니다.</p>
+          <label className="text-sm font-medium mb-1.5 block">{t('ads.contactLabel')}</label>
+          <Input name="contactInfo" placeholder={t('ads.contactPh')} disabled={loading} />
+          <p className="text-xs text-muted-foreground mt-1">{t('ads.contactNote')}</p>
         </div>
 
         {/* 만료일 */}
         <div>
           <label className="text-sm font-medium mb-1.5 block">
-            광고 만료일 <span className="text-destructive">*</span>
+            {t('ads.expLabel')} <span className="text-destructive">*</span>
           </label>
           <Input
             type="date"
@@ -322,17 +331,17 @@ export default function NewAdPage() {
             className="max-w-xs"
             disabled={loading}
           />
-          <p className="text-xs text-muted-foreground mt-1">최대 90일까지 설정 가능합니다.</p>
+          <p className="text-xs text-muted-foreground mt-1">{t('ads.expNote')}</p>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex gap-3 pt-2">
           <Button type="submit" disabled={loading || !!noToken}>
-            {uploading ? '이미지 업로드 중...' : isPending ? '등록 중...' : `광고 등록 (토큰 1개 소모)`}
+            {uploading ? t('ads.uploadingBtn') : isPending ? t('ads.postingBtn') : t('ads.submitBtn')}
           </Button>
           <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
-            취소
+            {t('ads.cancelBtn')}
           </Button>
         </div>
       </form>

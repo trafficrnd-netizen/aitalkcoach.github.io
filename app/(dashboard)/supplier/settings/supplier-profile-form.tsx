@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,6 +10,9 @@ import { updateSupplierProfile } from '@/lib/actions/supplier'
 import { ITEM_TYPE_LABELS, ITEM_TYPE_ICONS, CATEGORY_TREE } from '@/lib/categories'
 import { EQUIPMENT_SUB_TYPE_LABELS, type EquipmentSubType } from '@/lib/equipment-specs'
 import { cn } from '@/lib/utils'
+import { useT } from '@/lib/i18n/context'
+import { createClient } from '@/lib/supabase/client'
+import { ShieldCheck, Upload, X, ExternalLink } from 'lucide-react'
 
 const TOP_CATEGORIES = [
   { value: 'reagent', label: ITEM_TYPE_LABELS.reagent, icon: ITEM_TYPE_ICONS.reagent },
@@ -51,9 +54,11 @@ interface SupplierProfile {
   early_bird: boolean
   protein_categories?: string[]
   equipment_categories?: string[]
+  permit_url?: string | null
 }
 
 export function SupplierProfileForm({ profile }: { profile: SupplierProfile | null }) {
+  const t = useT()
   const [categories, setCategories] = useState<string[]>(profile?.categories ?? [])
   const [proteinCats, setProteinCats] = useState<string[]>(profile?.protein_categories ?? [])
   const [equipCats, setEquipCats] = useState<string[]>(profile?.equipment_categories ?? [])
@@ -61,8 +66,64 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
 
+  // 취급허가증 업로드
+  const [permitUrl, setPermitUrl] = useState<string | null>(profile?.permit_url ?? null)
+  const [permitUploading, setPermitUploading] = useState(false)
+  const [permitError, setPermitError] = useState('')
+  const permitFileRef = useRef<HTMLInputElement>(null)
+
   function toggle<T extends string>(arr: T[], val: T, setter: (a: T[]) => void) {
     setter(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
+  }
+
+  async function handlePermitUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      setPermitError('파일 크기는 5MB 이하여야 합니다.')
+      return
+    }
+    setPermitError('')
+    setPermitUploading(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setPermitError('로그인이 필요합니다.'); return }
+
+      const ext = file.name.split('.').pop()
+      const path = `${user.id}/permit_${Date.now()}.${ext}`
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: uploadData, error: uploadErr } = await (supabase as any).storage
+        .from('supplier-permits')
+        .upload(path, file, { upsert: true })
+      if (uploadErr) { setPermitError('업로드 실패: ' + uploadErr.message); return }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: { publicUrl } } = (supabase as any).storage
+        .from('supplier-permits')
+        .getPublicUrl(uploadData.path)
+      setPermitUrl(publicUrl)
+
+      // permit_url 즉시 저장
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('supplier_profiles')
+        .update({ permit_url: publicUrl })
+        .eq('user_id', user.id)
+    } finally {
+      setPermitUploading(false)
+    }
+  }
+
+  async function handlePermitRemove() {
+    setPermitUrl(null)
+    if (permitFileRef.current) permitFileRef.current.value = ''
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (supabase as any).from('supplier_profiles')
+      .update({ permit_url: null })
+      .eq('user_id', user.id)
   }
 
   const hasProtein = categories.includes('protein')
@@ -94,14 +155,14 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* 기본 정보 */}
       <section className="space-y-4">
-        <h2 className="font-semibold">기본 정보</h2>
+        <h2 className="font-semibold">{t('spf.basicInfo')}</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="companyName">회사명</Label>
+            <Label htmlFor="companyName">{t('spf.companyName')}</Label>
             <Input id="companyName" name="companyName" defaultValue={profile?.company_name ?? ''} required />
           </div>
           <div className="space-y-2">
-            <Label>사업자번호</Label>
+            <Label>{t('spf.bizNumber')}</Label>
             <Input
               value={profile?.business_number
                 ? profile.business_number.replace(/(\d{3})(\d{2})(\d{5})/, '$1-$2-$3')
@@ -111,16 +172,16 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="representative">대표자명</Label>
+            <Label htmlFor="representative">{t('spf.representative')}</Label>
             <Input id="representative" name="representative" defaultValue={profile?.representative ?? ''} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">대표 전화</Label>
+            <Label htmlFor="phone">{t('spf.phone')}</Label>
             <Input id="phone" name="phone" type="tel" defaultValue={profile?.phone ?? ''} />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="address">사업장 주소</Label>
+          <Label htmlFor="address">{t('spf.address')}</Label>
           <Input id="address" name="address" defaultValue={profile?.address ?? ''} />
         </div>
       </section>
@@ -130,8 +191,8 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
       {/* 취급 대분류 */}
       <section className="space-y-3">
         <div>
-          <h2 className="font-semibold">취급 카테고리</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">취급하는 품목 유형을 선택하면 관련 요청을 받을 수 있습니다.</p>
+          <h2 className="font-semibold">{t('spf.categorySection')}</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">{t('spf.categorySub')}</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {TOP_CATEGORIES.map(({ value, label, icon }) => (
@@ -155,7 +216,7 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
         {/* 단백질 서브카테고리 */}
         {hasProtein && (
           <div className="rounded-lg border border-primary/20 bg-primary/3 p-4 space-y-2 ml-2">
-            <p className="text-xs font-semibold text-primary">단백질·펩타이드 시약 세부 분류 (복수 선택)</p>
+            <p className="text-xs font-semibold text-primary">{t('spf.proteinSub')}</p>
             <div className="grid grid-cols-2 gap-2">
               {PROTEIN_SUBCATS.map(({ value, label }) => (
                 <div key={value} className="flex items-center gap-2">
@@ -174,7 +235,7 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
         {/* 장비 서브카테고리 */}
         {hasEquipment && (
           <div className="rounded-lg border border-primary/20 bg-primary/3 p-4 space-y-2 ml-2">
-            <p className="text-xs font-semibold text-primary">장비·기기 세부 분류 (복수 선택)</p>
+            <p className="text-xs font-semibold text-primary">{t('spf.equipSub')}</p>
             <div className="grid grid-cols-2 gap-2">
               {EQUIP_SUBCATS.map(({ value, label }) => (
                 <div key={value} className="flex items-center gap-2">
@@ -195,19 +256,78 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
 
       {/* 배송 가능 지역 */}
       <section className="space-y-3">
-        <h2 className="font-semibold">배송 가능 지역</h2>
+        <h2 className="font-semibold">{t('spf.regionSection')}</h2>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {REGIONS.map(({ value, label }) => (
+          {REGIONS.map(({ value }) => (
             <div key={value} className="flex items-center gap-2">
               <Checkbox
                 id={`reg-${value}`}
                 checked={regions.includes(value)}
                 onCheckedChange={() => toggle(regions, value, setRegions)}
               />
-              <label htmlFor={`reg-${value}`} className="text-sm cursor-pointer">{label}</label>
+              <label htmlFor={`reg-${value}`} className="text-sm cursor-pointer">{t(`sregion.${value}`)}</label>
             </div>
           ))}
         </div>
+      </section>
+
+      <Separator />
+
+      {/* 화학물질 취급허가증 */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="font-semibold flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4 text-secondary" />
+            화학물질 취급허가증
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            REACH·화관법 규제물질 취급 허가증을 등록하면 해당 물질 입찰 시 신뢰도 배지가 표시됩니다.
+          </p>
+        </div>
+
+        {permitUrl ? (
+          <div className="flex items-center gap-3 rounded-lg border border-secondary/30 bg-secondary/5 px-4 py-3">
+            <ShieldCheck className="h-5 w-5 text-secondary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-secondary">취급허가증 등록됨</p>
+              <a
+                href={permitUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-muted-foreground underline flex items-center gap-0.5 mt-0.5 truncate"
+              >
+                파일 보기 <ExternalLink className="h-3 w-3 shrink-0" />
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={handlePermitRemove}
+              className="rounded-full p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <div>
+            <button
+              type="button"
+              onClick={() => permitFileRef.current?.click()}
+              disabled={permitUploading}
+              className="flex items-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground hover:border-secondary/50 hover:bg-secondary/5 transition-colors disabled:opacity-50"
+            >
+              <Upload className="h-4 w-4" />
+              {permitUploading ? '업로드 중...' : '허가증 업로드 (PDF / 이미지 · 최대 5MB)'}
+            </button>
+            <input
+              ref={permitFileRef}
+              type="file"
+              accept=".pdf,image/jpeg,image/png"
+              className="hidden"
+              onChange={handlePermitUpload}
+            />
+            {permitError && <p className="mt-1 text-xs text-destructive">{permitError}</p>}
+          </div>
+        )}
       </section>
 
       <Separator />

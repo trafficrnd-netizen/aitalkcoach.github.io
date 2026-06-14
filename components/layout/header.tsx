@@ -52,12 +52,10 @@ export function Header({ user }: { user?: HeaderUser | null }) {
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0 sm:gap-3">
-          {/* 모바일: 간결 토글 / 데스크톱: 풀 토글 */}
           <span className="inline-flex sm:hidden"><LanguageToggle variant="compact" /></span>
           <span className="hidden sm:inline-flex"><LanguageToggle /></span>
           {user ? (
             <>
-              {/* 로그인 상태 표시 — 데스크톱만 */}
               <span className="hidden items-center gap-1.5 lg:flex">
                 <span className="h-2 w-2 rounded-full bg-secondary" aria-hidden="true" />
                 <span className="text-sm text-muted-foreground">

@@ -22,19 +22,18 @@ export function EarlyBirdBanner() {
     : t('banner.seatsBase')
 
   return (
-    <div className="bg-primary text-primary-foreground py-2 px-4 text-center text-xs sm:text-sm [word-break:keep-all]">
-      {/* 모바일: 2줄 간결 / 데스크톱: 1줄 전체 */}
-      <div className="flex flex-col items-center justify-center gap-x-3 gap-y-0.5 sm:flex-row sm:flex-wrap">
+    <div className="bg-primary text-primary-foreground py-2 px-3 text-center text-[11px] sm:text-sm [word-break:keep-all]">
+      <div className="flex flex-row flex-wrap items-center justify-center gap-x-2 gap-y-0.5 sm:gap-x-3">
         <span>🔬 <strong>{t('banner.researcherFree')}</strong></span>
-        <span className="hidden opacity-40 sm:inline">|</span>
-        <span className="flex flex-wrap items-center justify-center gap-x-1.5">
+        <span className="opacity-40">|</span>
+        <span className="flex flex-wrap items-center justify-center gap-x-1 sm:gap-x-1.5">
           <span className="font-semibold">🎁 {t('banner.supplierEarly')}</span>
           <span className="opacity-90">{seatText}</span>
           <Link href="/signup/supplier" className="font-medium underline hover:opacity-80">
             {t('banner.registerNow')}
           </Link>
         </span>
-        <span className="hidden opacity-40 sm:inline">|</span>
+        <span className="opacity-40">|</span>
         <span className="font-semibold">💸 {t('banner.zeroFee')}</span>
       </div>
     </div>

@@ -1,8 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Settings } from 'lucide-react'
+import { getServerT } from '@/lib/i18n/server'
 import { DeleteAccountButton } from '@/components/delete-account-button'
 import { NotificationEmailsSection } from '@/components/notification-emails-section'
+import { ChangePasswordForm } from '@/components/change-password-form'
 
 interface NotificationEmailEntry {
   email: string
@@ -27,6 +29,7 @@ export default async function ResearcherSettingsPage({
     .eq('user_id', user.id)
     .maybeSingle()
 
+  const t = getServerT()
   const params = await searchParams
   const notice: 'verified' | 'error' | null = params?.verified
     ? 'verified'
@@ -41,8 +44,8 @@ export default async function ResearcherSettingsPage({
       <div className="flex items-center gap-3 mb-6">
         <Settings className="h-6 w-6 text-primary" />
         <div>
-          <h1 className="text-2xl font-bold">설정</h1>
-          <p className="text-sm text-muted-foreground">계정 정보와 알림 설정을 관리합니다</p>
+          <h1 className="text-2xl font-bold">{t('rset.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('rset.sub')}</p>
         </div>
       </div>
 
@@ -50,24 +53,24 @@ export default async function ResearcherSettingsPage({
         {/* 계정 정보 */}
         <div className="rounded-xl border border-border bg-card p-6 space-y-4">
           <div>
-            <p className="text-xs text-muted-foreground mb-0.5">가입 이메일</p>
+            <p className="text-xs text-muted-foreground mb-0.5">{t('rset.emailLabel')}</p>
             <p className="text-sm font-medium">{user.email}</p>
           </div>
           {profile?.name && (
             <div>
-              <p className="text-xs text-muted-foreground mb-0.5">이름</p>
+              <p className="text-xs text-muted-foreground mb-0.5">{t('rset.nameLabel')}</p>
               <p className="text-sm font-medium">{profile.name}</p>
             </div>
           )}
           {profile?.institution && (
             <div>
-              <p className="text-xs text-muted-foreground mb-0.5">소속 기관</p>
+              <p className="text-xs text-muted-foreground mb-0.5">{t('rset.institutionLabel')}</p>
               <p className="text-sm font-medium">{profile.institution}</p>
             </div>
           )}
           {profile?.department && (
             <div>
-              <p className="text-xs text-muted-foreground mb-0.5">부서 / 연구실</p>
+              <p className="text-xs text-muted-foreground mb-0.5">{t('rset.deptLabel')}</p>
               <p className="text-sm font-medium">{profile.department}</p>
             </div>
           )}
@@ -78,7 +81,7 @@ export default async function ResearcherSettingsPage({
               🪙
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">잔여 크레딧</p>
+              <p className="text-xs text-muted-foreground">{t('rset.creditsLabel')}</p>
               <p className="text-base font-bold text-foreground">
                 {(profile?.credits ?? 0).toLocaleString()} P
               </p>
@@ -87,10 +90,13 @@ export default async function ResearcherSettingsPage({
 
           <div className="pt-2 border-t border-border">
             <p className="text-xs text-muted-foreground">
-              정보 변경이 필요하면 noreply@ai-traffic.kr로 문의해주세요.
+              {t('rset.contactNote')}
             </p>
           </div>
         </div>
+
+        {/* 비밀번호 변경 */}
+        <ChangePasswordForm />
 
         {/* 알림 이메일 관리 (NEW) */}
         <NotificationEmailsSection

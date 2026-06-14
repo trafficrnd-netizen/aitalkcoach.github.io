@@ -11,6 +11,7 @@ import {
   type SupplierQuoteRequestItem,
 } from '@/lib/excel-templates'
 import { FileText, Download, Upload, CheckCircle, AlertCircle } from 'lucide-react'
+import { useT } from '@/lib/i18n/context'
 import { BidConditionFields, type BidContext } from '@/components/bid-condition-fields'
 
 type RequestItem = SupplierQuoteRequestItem & { purity: string | null }
@@ -23,6 +24,7 @@ type Props = {
 }
 
 export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 요청', bidContext }: Props) {
+  const t = useT()
   const [bidItems, setBidItems] = useState<BidItemInput[]>(
     items.map(item => ({ requestItemId: item.id, totalPrice: 0, available: true }))
   )
@@ -79,7 +81,7 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
     }
     const quoteFile = fd.get('quotePdf') as File | null
     if (!quoteFile || !quoteFile.size) {
-      setError('공급사 양식의 견적 PDF를 첨부해주세요.')
+      setError(t('bid.quotePdfErrMissing'))
       return
     }
     startTransition(async () => {
@@ -97,7 +99,7 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
 
       {/* Excel 견적서 다운로드 / 업로드 */}
       <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Excel 견적서 작성 (선택)</p>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{t('bid.excelLabel')}</p>
         <div className="grid grid-cols-2 gap-2">
           <Button
             type="button"
@@ -106,7 +108,7 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
             onClick={() => downloadSupplierQuoteTemplate(items, requestTitle)}
           >
             <Download className="h-4 w-4 mr-1.5" />
-            견적서 양식 다운로드
+            {t('bid.excelDownload')}
           </Button>
           <Button
             type="button"
@@ -115,7 +117,7 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
             onClick={() => quoteFileRef.current?.click()}
           >
             <Upload className="h-4 w-4 mr-1.5" />
-            작성된 견적서 업로드
+            {t('bid.excelUpload')}
           </Button>
         </div>
         <input
@@ -138,14 +140,13 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
           </div>
         )}
         <p className="text-[11px] text-muted-foreground leading-snug">
-          양식 다운로드 → 단가·납기가능일 작성 → 업로드하면 아래 가격이 자동 입력됩니다.
-          업로드 후 수동으로 수정할 수 있습니다.
+          {t('bid.excelHint')}
         </p>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">품목별 가격 입력</h2>
+          <h2 className="font-semibold">{t('bid.itemsLabel')}</h2>
           <span className="text-xs text-muted-foreground">
             {selectedCount}/{items.length}개 품목 선택
             {isPartial && <span className="ml-1 text-amber-600">(부분 견적)</span>}
@@ -155,10 +156,10 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
           <table className="w-full text-sm">
             <thead className="bg-muted/50">
               <tr>
-                <th className="px-3 py-2.5 text-left font-medium w-8">공급</th>
-                <th className="px-3 py-2.5 text-left font-medium">물질명</th>
-                <th className="px-3 py-2.5 text-left font-medium hidden sm:table-cell">CAS / 수량</th>
-                <th className="px-3 py-2.5 text-right font-medium">견적 금액 (원, VAT포함)</th>
+                <th className="px-3 py-2.5 text-left font-medium w-8">{t('bid.colSupply')}</th>
+                <th className="px-3 py-2.5 text-left font-medium">{t('bid.substanceName')}</th>
+                <th className="px-3 py-2.5 text-left font-medium hidden sm:table-cell">{t('bid.colCasQty')}</th>
+                <th className="px-3 py-2.5 text-right font-medium">{t('bid.colPrice')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -198,7 +199,7 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
             {selectedCount > 0 && (
               <tfoot className="bg-muted/30 border-t border-border">
                 <tr>
-                  <td colSpan={3} className="px-3 py-2.5 text-sm font-medium text-right pr-4">합계</td>
+                  <td colSpan={3} className="px-3 py-2.5 text-sm font-medium text-right pr-4">{t('bid.colTotal')}</td>
                   <td className="px-3 py-2.5 text-right font-bold text-primary">
                     {totalPrice.toLocaleString()}원
                   </td>
@@ -209,14 +210,14 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
         </div>
         {isPartial && (
           <p className="mt-2 text-xs text-amber-700">
-            일부 품목만 선택한 부분 견적입니다. 연구자가 품목별로 다른 공급자를 선택할 수 있습니다.
+            {t('bid.partial')}
           </p>
         )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="text-sm font-medium mb-1.5 block">납기 가능일</label>
+          <label className="text-sm font-medium mb-1.5 block">{t('bid.deliveryDate')}</label>
           <Input
             type="date"
             value={deliveryDate}
@@ -225,9 +226,9 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
           />
         </div>
         <div>
-          <label className="text-sm font-medium mb-1.5 block">메모 (선택)</label>
+          <label className="text-sm font-medium mb-1.5 block">{t('bid.memo')}</label>
           <Input
-            placeholder="배송 조건, CoA 포함 여부 등"
+            placeholder={t('bid.memoBatchPh')}
             value={memo}
             onChange={e => setMemo(e.target.value)}
           />
@@ -240,7 +241,7 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
       {/* 공급사 양식 견적서 PDF — 필수 */}
       <div>
         <label className="text-sm font-medium mb-1.5 block">
-          견적서 PDF (공급사 양식) <span className="text-destructive">*</span>
+          {t('bid.quotePdf')} <span className="text-destructive">*</span>
         </label>
         <Input
           type="file"
@@ -250,7 +251,7 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
           className="max-w-md cursor-pointer file:mr-3 file:rounded file:border-0 file:bg-muted file:px-2 file:py-1 file:text-sm"
         />
         <p className="mt-1 text-xs text-muted-foreground">
-          자사 양식의 견적서를 PDF로 첨부해주세요. (10MB 이하) 연구자가 비교 단계에서 다운로드합니다.
+          {t('bid.quotePdfHint')}
         </p>
       </div>
 
@@ -260,20 +261,19 @@ export function BatchBidForm({ requestId, items, requestTitle = '묶음 견적 �
       <div className="flex items-start gap-2 rounded-md border border-border bg-muted/50 px-3 py-2.5 text-xs text-muted-foreground">
         <FileText className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
         <p className="leading-snug">
-          <span className="font-semibold text-foreground">SDS 제공 의무 안내 (화평법 제35조)</span><br />
-          낙찰 후 납품 시 해당 화학물질의 물질안전보건자료(SDS/MSDS)를 구매자에게 제공해야 합니다.
-          유해화학물질 판매업자는 화관법 제28조에 따른 영업허가를 보유해야 합니다.
+          <span className="font-semibold text-foreground">{t('bid.sdsTitle')}</span><br />
+          {t('bid.sdsBody')}
         </p>
       </div>
 
       <div className="flex items-center justify-between">
         <div className="text-sm text-muted-foreground">
           {selectedCount > 0 ? (
-            <span>선택 {selectedCount}개 · 합계 <strong className="text-foreground">{totalPrice.toLocaleString()}원</strong></span>
-          ) : '품목을 선택하세요'}
+            <span>{t('bid.selectedSummary').replace('{n}', String(selectedCount))} <strong className="text-foreground">{totalPrice.toLocaleString()}원</strong></span>
+          ) : t('bid.selectItems')}
         </div>
         <Button type="submit" disabled={isPending || selectedCount === 0}>
-          {isPending ? '제출 중...' : '견적 제출'}
+          {isPending ? t('bid.submitting') : t('bid.submit')}
         </Button>
       </div>
     </form>

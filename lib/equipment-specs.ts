@@ -184,7 +184,7 @@ export const EQUIPMENT_SPEC_FIELDS: Record<EquipmentSubType, SpecField[]> = {
     {
       key: 'device_type', label: '기기 유형', fieldType: 'select', required: true,
       options: [
-        { value: 'co2_incubator', label: 'CO₂ 인큐베이터' },
+        { value: 'co2_incubator', label: 'CO2 인큐베이터' },
         { value: 'bsc', label: '생물안전캐비닛 (BSC)' },
         { value: 'shaker', label: '진탕배양기' },
         { value: 'bioreactor', label: '바이오리액터' },
@@ -199,9 +199,9 @@ export const EQUIPMENT_SPEC_FIELDS: Record<EquipmentSubType, SpecField[]> = {
         { value: 'class3', label: 'Class III' },
       ],
     },
-    { key: 'co2_range', label: 'CO₂ 제어 범위', fieldType: 'number', unit: '%' },
+    { key: 'co2_range', label: 'CO2 제어 범위', fieldType: 'number', unit: '%' },
     {
-      key: 'o2_control', label: 'O₂ 제어', fieldType: 'select',
+      key: 'o2_control', label: 'O2 제어', fieldType: 'select',
       options: [
         { value: 'yes', label: '있음' },
         { value: 'no', label: '없음' },
@@ -221,7 +221,7 @@ export const EQUIPMENT_SPEC_FIELDS: Record<EquipmentSubType, SpecField[]> = {
     {
       key: 'system_type', label: '시스템 유형', fieldType: 'select', required: true,
       options: [
-        { value: 'fplc', label: 'FPLC / ÄKTA' },
+        { value: 'fplc', label: 'FPLC / AKTA' },
         { value: 'hplc', label: 'HPLC' },
         { value: 'uhplc', label: 'UHPLC' },
         { value: 'gc', label: 'GC' },
@@ -305,7 +305,7 @@ export const EQUIPMENT_SPEC_FIELDS: Record<EquipmentSubType, SpecField[]> = {
     },
     { key: 'throughput', label: '처리량', fieldType: 'number', unit: 'well/run' },
     {
-      key: 'co2_control', label: 'CO₂ 제어', fieldType: 'select',
+      key: 'co2_control', label: 'CO2 제어', fieldType: 'select',
       options: [
         { value: 'yes', label: '있음' },
         { value: 'no', label: '없음' },
@@ -353,7 +353,7 @@ export const EQUIPMENT_SPEC_FIELDS: Record<EquipmentSubType, SpecField[]> = {
       options: [
         { value: 'isoflurane', label: '이소플루란 (Isoflurane)' },
         { value: 'sevoflurane', label: '세보플루란 (Sevoflurane)' },
-        { value: 'co2', label: 'CO₂' },
+        { value: 'co2', label: 'CO2' },
         { value: 'na', label: '해당 없음' },
       ],
     },
@@ -377,7 +377,7 @@ export const EQUIPMENT_SPEC_FIELDS: Record<EquipmentSubType, SpecField[]> = {
         { value: 'homogenize', label: '분쇄·균질화 (Homogenizer/Mill)' },
         { value: 'extraction', label: '추출·정제 (SPE/LLE/ASE)' },
         { value: 'digestion', label: '소화·분해 (Microwave/Hot Block Digester)' },
-        { value: 'concentration', label: '농축·증발 (N₂ Evaporator/Rotary Evaporator)' },
+        { value: 'concentration', label: '농축·증발 (N2 Evaporator/Rotary Evaporator)' },
         { value: 'filtration', label: '여과·정제 보조 (Vacuum Filtration/UF)' },
         { value: 'automation', label: '보조·자동화 (Shaker/Vortex/Liquid Handler)' },
       ],

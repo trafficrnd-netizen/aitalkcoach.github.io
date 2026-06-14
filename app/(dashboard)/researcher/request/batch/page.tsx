@@ -11,8 +11,9 @@ import { createBatchRequest } from '@/lib/actions/request'
 import { AddressSearch } from '@/components/address-search'
 import { ExcelBatchSection } from '@/components/excel-batch-section'
 import { PAYMENT_TERMS, paymentTermLabel, type PaymentTermValue } from '@/lib/payment-terms'
-import { Plus, Clock, CalendarClock, ShieldCheck } from 'lucide-react'
+import { Plus, Clock, CalendarClock, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { checkRegulated } from '@/lib/regulated-substances'
 
 type Step = 'form' | 'preview'
 type BidMode = 'open' | 'deadline'
@@ -107,6 +108,12 @@ export default function BatchRequestPage() {
   const validItems = items.filter(i => i.substanceName.trim() && Number(i.qty) > 0)
   const bidModeLabel = bidMode === 'open' ? '선착순형 (연구자 직접 마감)' : '기간 마감형'
 
+  // 묶음 품목 중 규제물질 목록
+  const regulatedItems = validItems
+    .map(i => ({ item: i, reg: checkRegulated(i.casNumber) }))
+    .filter(r => r.reg !== null) as { item: typeof validItems[0]; reg: NonNullable<ReturnType<typeof checkRegulated>> }[]
+  const hasHighRisk = regulatedItems.some(r => r.reg.level === 'high')
+
   if (step === 'preview') {
     return (
       <div className="max-w-2xl">
@@ -152,6 +159,34 @@ export default function BatchRequestPage() {
         </div>
 
         <p className="text-sm text-muted-foreground mb-4">총 {validItems.length}개 품목</p>
+
+        {/* 규제물질 경고 */}
+        {regulatedItems.length > 0 && (
+          <div className={cn(
+            'flex items-start gap-2 rounded-md border px-3 py-2.5 mb-4',
+            hasHighRisk ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50'
+          )}>
+            <ShieldAlert className={cn('h-4 w-4 shrink-0 mt-0.5', hasHighRisk ? 'text-red-600' : 'text-amber-600')} />
+            <div className={cn('text-xs leading-snug', hasHighRisk ? 'text-red-800' : 'text-amber-800')}>
+              <span className="font-semibold">
+                {hasHighRisk ? '⚠️ 고위험 규제물질 포함' : '관리대상 물질 포함'}
+              </span>
+              <ul className="mt-1 space-y-0.5">
+                {regulatedItems.map(({ item, reg }) => (
+                  <li key={item.id}>
+                    <span className="font-medium">{item.substanceName}</span>
+                    {item.casNumber && <span className="font-mono ml-1">({item.casNumber})</span>}
+                    {' — '}{reg.regs.join(' · ')}
+                    {reg.level === 'high' && <span className="ml-1 font-semibold">고위험</span>}
+                  </li>
+                ))}
+              </ul>
+              {hasHighRisk && (
+                <p className="mt-1">취급 전 기관 허가 여부를 반드시 확인하세요.</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* 비공개 안내 */}
         <div className="flex items-start gap-2 rounded-md bg-primary/5 border border-primary/20 px-3 py-2.5 mb-4">

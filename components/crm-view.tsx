@@ -5,14 +5,31 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { issueCoupon, toggleCoupon, type CrmCustomer, type CrmCoupon } from '@/lib/actions/supplier-crm'
-import { Users, Ticket, Building2 } from 'lucide-react'
+import {
+  issueCoupon, toggleCoupon, respondToCouponRequest,
+  type CrmCustomer, type CrmCoupon, type IncomingCouponRequest,
+} from '@/lib/actions/supplier-crm'
+import { Users, Ticket, Building2, Bell, Star } from 'lucide-react'
+import { useT } from '@/lib/i18n/context'
 
-export function CrmView({ customers, coupons: initialCoupons }: { customers: CrmCustomer[]; coupons: CrmCoupon[] }) {
+export function CrmView({
+  customers,
+  coupons: initialCoupons,
+  couponRequests: initialRequests = [],
+}: {
+  customers: CrmCustomer[]
+  coupons: CrmCoupon[]
+  couponRequests?: IncomingCouponRequest[]
+}) {
+  const t = useT()
   const router = useRouter()
   const [coupons, setCoupons] = useState(initialCoupons)
   const [pending, startTransition] = useTransition()
   const [msg, setMsg] = useState<string | null>(null)
+  const [reqStatuses, setReqStatuses] = useState<Record<string, 'pending' | 'fulfilled' | 'declined'>>(
+    Object.fromEntries(initialRequests.map(r => [r.id, r.status]))
+  )
+  const [reqPending, setReqPending] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     title: '', discountType: 'percent' as 'percent' | 'amount', discountValue: '',
@@ -33,7 +50,7 @@ export function CrmView({ customers, coupons: initialCoupons }: { customers: Crm
         maxUses: form.maxUses ? Number(form.maxUses) : null,
       })
       if (!res.ok) { setMsg('❌ ' + res.error); return }
-      setMsg('✅ 쿠폰 발행 완료')
+      setMsg(t('crm.doneIssue'))
       setForm({ ...form, title: '', discountValue: '' })
       router.refresh()
     })
@@ -44,17 +61,93 @@ export function CrmView({ customers, coupons: initialCoupons }: { customers: Crm
     setCoupons(coupons.map(c => c.id === id ? { ...c, active } : c))
   }
 
+  async function handleRespond(id: string, status: 'fulfilled' | 'declined') {
+    setReqPending(id)
+    await respondToCouponRequest(id, status)
+    setReqStatuses(prev => ({ ...prev, [id]: status }))
+    setReqPending(null)
+  }
+
+  const pendingRequestCount = initialRequests.filter(r => (reqStatuses[r.id] ?? r.status) === 'pending').length
+
   return (
     <div className="space-y-8">
+      {/* 쿠폰 요청 수신함 — 단골 연구자에게 받은 요청 */}
+      {initialRequests.length > 0 && (
+        <section>
+          <div className="flex items-center gap-2 mb-3">
+            <Bell className="h-5 w-5 text-amber-500" />
+            <h2 className="font-semibold">
+              {t('crm.requestsTitle')}
+              {pendingRequestCount > 0 && (
+                <span className="ml-1.5 inline-flex items-center justify-center rounded-full bg-amber-500 text-white text-[10px] font-bold px-1.5 min-w-[18px] h-[18px]">
+                  {pendingRequestCount}
+                </span>
+              )}
+            </h2>
+          </div>
+          <div className="rounded-lg border border-border divide-y divide-border">
+            {initialRequests.map(req => {
+              const currentStatus = reqStatuses[req.id] ?? req.status
+              return (
+                <div key={req.id} className="px-4 py-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-sm flex items-center gap-1">
+                      <Star className="h-3.5 w-3.5 text-secondary fill-secondary shrink-0" />
+                      {req.researcherName}
+                    </div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Building2 className="h-3 w-3" />
+                      {req.institution ?? '—'} · {new Date(req.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                    </div>
+                    {req.message && (
+                      <div className="text-xs text-foreground mt-0.5 italic">&ldquo;{req.message}&rdquo;</div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {currentStatus === 'pending' ? (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={reqPending === req.id}
+                          onClick={() => handleRespond(req.id, 'fulfilled')}
+                        >
+                          {reqPending === req.id ? '…' : t('crm.issueBtn')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs text-muted-foreground"
+                          disabled={reqPending === req.id}
+                          onClick={() => handleRespond(req.id, 'declined')}
+                        >
+                          {t('crm.declineBtn')}
+                        </Button>
+                      </>
+                    ) : currentStatus === 'fulfilled' ? (
+                      <span className="text-xs text-secondary font-medium">{t('crm.issuedMark')}</span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">{t('crm.declinedMark')}</span>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
       {/* 유치 고객 목록 */}
       <section>
         <div className="flex items-center gap-2 mb-3">
           <Users className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold">유치 고객 ({customers.length})</h2>
+          <h2 className="font-semibold">{t('crm.customersTitle')} ({customers.length})</h2>
         </div>
         {customers.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
-            아직 유치한 고객이 없습니다. 전용 코드(<code>/p/코드</code>)를 고객에게 공유해 팔로우를 받으세요.
+            {t('crm.noCustomers')}
           </div>
         ) : (
           <div className="rounded-lg border border-border divide-y divide-border">
@@ -68,7 +161,7 @@ export function CrmView({ customers, coupons: initialCoupons }: { customers: Crm
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-sm font-bold text-primary">{c.dealCount}건 거래</div>
+                  <div className="text-sm font-bold text-primary">{t('crm.deals').replace('{n}', String(c.dealCount))}</div>
                   <div className="text-[11px] text-muted-foreground">
                     {new Date(c.followedAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 팔로우
                   </div>
@@ -83,54 +176,54 @@ export function CrmView({ customers, coupons: initialCoupons }: { customers: Crm
       <section>
         <div className="flex items-center gap-2 mb-3">
           <Ticket className="h-5 w-5 text-accent-foreground" />
-          <h2 className="font-semibold">할인 쿠폰 발행</h2>
+          <h2 className="font-semibold">{t('crm.couponFormTitle')}</h2>
         </div>
         <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3">
           <div className="space-y-1.5">
-            <Label>쿠폰 제목</Label>
-            <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="예: 단골 고객 10% 할인" />
+            <Label>{t('crm.couponTitleLabel')}</Label>
+            <Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder={t('crm.couponTitlePh')} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>할인 방식</Label>
+              <Label>{t('crm.discountType')}</Label>
               <select value={form.discountType} onChange={e => setForm({ ...form, discountType: e.target.value as 'percent' | 'amount' })}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="percent">정률 (%)</option>
-                <option value="amount">정액 (원)</option>
+                <option value="percent">{t('crm.discountPct')}</option>
+                <option value="amount">{t('crm.discountAmt')}</option>
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>할인값</Label>
+              <Label>{t('crm.discountValue')}</Label>
               <Input type="number" value={form.discountValue} onChange={e => setForm({ ...form, discountValue: e.target.value })}
                 placeholder={form.discountType === 'percent' ? '10' : '50000'} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>대상</Label>
+              <Label>{t('crm.target')}</Label>
               <select value={form.target} onChange={e => setForm({ ...form, target: e.target.value as 'all_followers' | 'specific' })}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="all_followers">모든 팔로워</option>
-                <option value="specific">특정 고객</option>
+                <option value="all_followers">{t('crm.targetAll')}</option>
+                <option value="specific">{t('crm.targetSpecific')}</option>
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>유효기간 (선택)</Label>
+              <Label>{t('crm.validUntil')}</Label>
               <Input type="date" value={form.validUntil} onChange={e => setForm({ ...form, validUntil: e.target.value })} />
             </div>
           </div>
           {form.target === 'specific' && (
             <div className="space-y-1.5">
-              <Label>대상 고객</Label>
+              <Label>{t('crm.targetCustomer')}</Label>
               <select value={form.targetResearcherId} onChange={e => setForm({ ...form, targetResearcherId: e.target.value })}
                 className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
-                <option value="">선택하세요</option>
+                <option value="">{t('crm.targetSelect')}</option>
                 {customers.map(c => <option key={c.researcherId} value={c.researcherId}>{c.name} ({c.institution ?? '—'})</option>)}
               </select>
             </div>
           )}
           <Button onClick={submit} disabled={pending} className="w-full">
-            {pending ? '발행 중...' : '쿠폰 발행'}
+            {pending ? t('crm.issuing') : t('crm.issueCouponBtn')}
           </Button>
           {msg && <p className="text-sm text-center">{msg}</p>}
         </div>
@@ -139,22 +232,22 @@ export function CrmView({ customers, coupons: initialCoupons }: { customers: Crm
       {/* 발행한 쿠폰 목록 */}
       {coupons.length > 0 && (
         <section>
-          <h2 className="font-semibold mb-3">발행한 쿠폰 ({coupons.length})</h2>
+          <h2 className="font-semibold mb-3">{t('crm.issuedCouponsTitle')} ({coupons.length})</h2>
           <div className="space-y-2">
             {coupons.map((c) => (
               <div key={c.id} className={`rounded-lg border px-4 py-3 flex items-center justify-between ${c.active ? 'border-border' : 'border-border/40 opacity-60'}`}>
                 <div className="min-w-0">
                   <div className="font-medium text-sm">{c.title}</div>
                   <div className="text-xs text-muted-foreground">
-                    {c.discountType === 'percent' ? `${c.discountValue}% 할인` : `${c.discountValue.toLocaleString()}원 할인`}
-                    {' · '}{c.target === 'all_followers' ? '모든 팔로워' : '특정 고객'}
-                    {' · '}사용 {c.usedCount}{c.maxUses ? `/${c.maxUses}` : ''}회
+                    {c.discountType === 'percent' ? `${c.discountValue}${t('crm.discountPctSuffix')}` : `${c.discountValue.toLocaleString()}${t('crm.discountAmtSuffix')}`}
+                    {' · '}{c.target === 'all_followers' ? t('crm.targetAll') : t('crm.targetSpecific')}
+                    {' · '}{t('crm.usedTimes').replace('{n}', `${c.usedCount}${c.maxUses ? '/' + c.maxUses : ''}`)}
                     {c.validUntil && ` · ~${c.validUntil}`}
                   </div>
                 </div>
                 <button onClick={() => flip(c.id, !c.active)}
                   className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${c.active ? 'bg-secondary/15 text-secondary' : 'bg-muted text-muted-foreground'}`}>
-                  {c.active ? '활성' : '비활성'}
+                  {c.active ? t('crm.active') : t('crm.inactive')}
                 </button>
               </div>
             ))}

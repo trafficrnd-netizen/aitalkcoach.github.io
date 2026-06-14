@@ -13,7 +13,7 @@ export default async function SupplierBoardPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: requestRows } = await (supabase as any)
     .from('requests')
-    .select('id, title, type, deadline, delivery_address, created_at')
+    .select('id, title, type, deadline, delivery_address, delivery_city, is_group_buy, discount_requested, created_at')
     .eq('status', 'open')
     .order('created_at', { ascending: false })
     .limit(30)
@@ -34,7 +34,8 @@ export default async function SupplierBoardPage() {
 
   const requests: BoardRequest[] = (requestRows ?? []).map((r: {
     id: string; title: string | null; type: string
-    deadline: string | null; delivery_address: string | null; created_at: string
+    deadline: string | null; delivery_address: string | null; delivery_city: string | null
+    is_group_buy: boolean | null; discount_requested: boolean | null; created_at: string
   }) => ({
     ...r,
     item_count: itemMap[r.id] ?? 0,

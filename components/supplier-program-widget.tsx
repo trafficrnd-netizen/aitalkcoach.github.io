@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { claimSupplierReferralCode, type SupplierProgramStatus } from '@/lib/actions/supplier-program'
 import { setPublicProfileEnabled } from '@/lib/actions/public-profile'
 import { TIER_META } from '@/lib/tier'
+import { useT } from '@/lib/i18n/context'
 import { Copy, Check, Sparkles, Lock, ExternalLink, Zap, Trophy, Globe } from 'lucide-react'
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function SupplierProgramWidget({ status: initial }: Props) {
+  const t = useT()
   const [status, setStatus] = useState(initial)
   const [pending, startTransition] = useTransition()
   const [copied, setCopied] = useState(false)
@@ -33,8 +35,8 @@ export function SupplierProgramWidget({ status: initial }: Props) {
       const res = await claimSupplierReferralCode()
       if (!res.ok) {
         setError(res.reason === 'threshold_not_met'
-          ? `아직 인증 연구자 ${res.count ?? 0}명 — ${status.threshold}명 필요`
-          : `발급 실패: ${res.reason}`)
+          ? t('spw.errThreshold').replace('{a}', String(res.count ?? 0)).replace('{b}', String(status.threshold))
+          : t('spw.errIssue').replace('{reason}', String(res.reason)))
         return
       }
       setStatus({
@@ -66,9 +68,9 @@ export function SupplierProgramWidget({ status: initial }: Props) {
     <div className="rounded-xl border-2 border-accent/40 bg-gradient-to-br from-accent/5 to-secondary/5 p-5">
       <div className="flex items-center gap-2 mb-1 flex-wrap">
         <Sparkles className="h-4 w-4 text-accent-foreground" />
-        <h3 className="font-bold text-foreground">전용 코드 프로그램</h3>
+        <h3 className="font-bold text-foreground">{t('spw.title')}</h3>
         {status.earlybirdActive && (
-          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-accent/30 text-accent-foreground">얼리버드</span>
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-accent/30 text-accent-foreground">{t('spw.earlybird')}</span>
         )}
         {tierMeta && (
           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border"
@@ -78,22 +80,22 @@ export function SupplierProgramWidget({ status: initial }: Props) {
         )}
         {status.responseStats?.fastResponder && (
           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border border-secondary text-secondary bg-secondary/10">
-            <Zap className="h-2.5 w-2.5" /> 빠른 응답
+            <Zap className="h-2.5 w-2.5" /> {t('spw.fastResponse')}
           </span>
         )}
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        인증 연구자 {status.threshold}명 초대로 전용 코드 발급. 30·100명 도달 시 Silver·Gold 티어와 추가 혜택.
+        {t('spw.intro').replace('{n}', String(status.threshold))}
       </p>
 
       {/* 진행 게이지 — 다음 티어 향해 */}
       <div className="mb-3">
         <div className="flex items-baseline justify-between mb-1">
           <span className="text-xs text-muted-foreground">
-            {status.nextTier ? `다음: ${TIER_META[status.nextTier].label} ` : '최고 티어 달성'}
+            {status.nextTier ? t('spw.nextTier').replace('{tier}', TIER_META[status.nextTier].label) : t('spw.topTier')}
           </span>
           <span className="text-sm font-bold text-foreground">
-            {status.count}{status.nextTierIn != null ? ` / ${nextThreshold}` : ''}명
+            {status.count}{status.nextTierIn != null ? ` / ${nextThreshold}` : ''}{t('spw.peopleSuffix')}
           </span>
         </div>
         <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
@@ -108,15 +110,15 @@ export function SupplierProgramWidget({ status: initial }: Props) {
       {status.responseStats && status.responseStats.bids > 0 && (
         <div className="mb-3 grid grid-cols-2 gap-2 text-[11px]">
           <div className="rounded-md bg-muted/50 px-2.5 py-1.5">
-            <div className="text-muted-foreground">최근 30일 응답</div>
+            <div className="text-muted-foreground">{t('spw.resp30d')}</div>
             <div className="font-bold text-foreground">
-              평균 {status.responseStats.avgMinutes}분 · {status.responseStats.bids}건
+              {t('spw.respAvg').replace('{m}', String(status.responseStats.avgMinutes)).replace('{b}', String(status.responseStats.bids))}
             </div>
           </div>
           <div className="rounded-md bg-muted/50 px-2.5 py-1.5">
-            <div className="text-muted-foreground">빠른응답 인증</div>
+            <div className="text-muted-foreground">{t('spw.fastBadge')}</div>
             <div className={`font-bold ${status.responseStats.fastResponder ? 'text-secondary' : 'text-foreground/60'}`}>
-              {status.responseStats.fastResponder ? '✓ 보유' : '평균 60분 이하 필요'}
+              {status.responseStats.fastResponder ? t('spw.fastHave') : t('spw.fastNeed')}
             </div>
           </div>
         </div>
@@ -127,9 +129,9 @@ export function SupplierProgramWidget({ status: initial }: Props) {
         <div className="space-y-2">
           <div className="rounded-lg border border-border bg-background p-3">
             <div className="flex items-baseline justify-between mb-1">
-              <span className="text-[11px] text-muted-foreground">발급된 코드</span>
+              <span className="text-[11px] text-muted-foreground">{t('spw.issuedCode')}</span>
               <span className="text-[11px] text-muted-foreground">
-                팔로워 {status.followers} · 받은 요청 {status.requestsViaCode}
+                {t('spw.followReq').replace('{f}', String(status.followers)).replace('{r}', String(status.requestsViaCode))}
               </span>
             </div>
             <div className="font-mono text-2xl font-extrabold tracking-widest text-primary text-center py-1">
@@ -139,7 +141,7 @@ export function SupplierProgramWidget({ status: initial }: Props) {
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={copy} className="flex-1">
               {copied ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
-              {copied ? '복사됨' : '공유 링크 복사'}
+              {copied ? t('spw.copied') : t('spw.copyLink')}
             </Button>
             {status.shareUrl && (
               <a href={status.shareUrl} target="_blank" rel="noreferrer"
@@ -152,18 +154,18 @@ export function SupplierProgramWidget({ status: initial }: Props) {
             <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 flex items-start gap-2">
               <Lock className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               <span>
-                현재 코드 비활성. 얼리버드 종료 후엔 <strong>Pro 이상 구독자</strong>만 활성 유지됩니다.
+                {t('spw.inactivePre')}<strong>{t('spw.inactiveStrong')}</strong>{t('spw.inactivePost')}
               </span>
             </div>
           )}
         </div>
       ) : eligible ? (
         <Button onClick={claim} disabled={pending} className="w-full">
-          {pending ? '발급 중...' : '🎁 전용 코드 발급받기'}
+          {pending ? t('spw.issuing') : t('spw.claimBtn')}
         </Button>
       ) : (
         <p className="text-xs text-muted-foreground">
-          {status.threshold - status.count}명 더 초대하면 전용 코드를 발급받을 수 있습니다.
+          {t('spw.needMore').replace('{n}', String(status.threshold - status.count))}
         </p>
       )}
 
@@ -171,7 +173,7 @@ export function SupplierProgramWidget({ status: initial }: Props) {
 
       {!status.earlybirdActive && status.isFreePlan && !status.code && (
         <p className="text-[10px] text-muted-foreground mt-3 leading-snug">
-          ※ 얼리버드 기간 중에는 무료로 발급·활성됩니다. 종료 후엔 Pro 이상 구독자만 유지됩니다.
+          {t('spw.earlybirdNote')}
         </p>
       )}
 
@@ -180,15 +182,15 @@ export function SupplierProgramWidget({ status: initial }: Props) {
         <div className="mt-4 pt-4 border-t border-border/60">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Globe className="h-3.5 w-3.5 text-secondary" /> 공개 프로필 (검색 노출)
+              <Globe className="h-3.5 w-3.5 text-secondary" /> {t('spw.publicProfile')}
             </div>
             <label className="flex items-center gap-1.5 cursor-pointer text-xs">
               <input type="checkbox" checked={pubEnabled} onChange={togglePublic} className="h-3.5 w-3.5 accent-secondary" />
-              {pubEnabled ? '공개' : '비공개'}
+              {pubEnabled ? t('spw.public') : t('spw.private')}
             </label>
           </div>
           <p className="text-[11px] text-muted-foreground leading-snug mb-2">
-            인증·티어 보유 공급자는 검색 가능한 공개 프로필을 가집니다. 카탈로그·평점·티어가 표시되어 신규 고객이 찾아옵니다.
+            {t('spw.publicDesc')}
           </p>
           {pubEnabled && status.publicProfileUrl && (
             <a href={status.publicProfileUrl} target="_blank" rel="noreferrer"

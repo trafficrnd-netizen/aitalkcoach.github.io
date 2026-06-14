@@ -66,10 +66,8 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
   const t = useT()
   const navItems = role === 'researcher' ? researcherNav : supplierNav
   const [mobileOpen, setMobileOpen] = useState(false)
-  // 클릭 즉시 시각 피드백 — 이동 중인 경로 추적
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
-  // 경로가 실제로 바뀌면 pending 해제
   useEffect(() => {
     setPendingHref(null)
     setMobileOpen(false)
@@ -84,7 +82,6 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
 
   const sidebarContent = (
     <>
-      {/* Header */}
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
         <Link href="/" className="flex items-center">
           <img src="/logo.svg" alt="BidVibe" className="h-7 w-auto" />
@@ -98,7 +95,6 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         </button>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 overflow-y-auto p-3">
         <ul className="space-y-1">
           {navItems.map(({ href, key, icon: Icon }) => {
@@ -135,9 +131,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* Footer */}
       <div className="border-t border-border p-3 space-y-2">
-        {/* 크레딧 요약 위젯 */}
         <Link
           href={creditsHref}
           onClick={() => setPendingHref(creditsHref)}
@@ -188,7 +182,6 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 inset-x-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background px-4">
         <button
           onClick={() => setMobileOpen(true)}
@@ -202,7 +195,6 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Mobile backdrop */}
       {mobileOpen && (
         <div
           className="md:hidden fixed inset-0 z-40 bg-black/40"
@@ -211,7 +203,6 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={cn(
           'flex w-56 shrink-0 flex-col border-r border-border bg-background',

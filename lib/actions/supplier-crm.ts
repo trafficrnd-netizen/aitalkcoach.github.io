@@ -27,6 +27,16 @@ export interface CrmCoupon {
   createdAt: string
 }
 
+export interface IncomingCouponRequest {
+  id: string
+  researcherId: string
+  researcherName: string
+  institution: string | null
+  message: string | null
+  status: 'pending' | 'fulfilled' | 'declined'
+  createdAt: string
+}
+
 /** 공급자의 유치 고객(팔로워) 목록 */
 export async function getSupplierCustomers(): Promise<CrmCustomer[] | { error: string }> {
   const supabase = await createClient()
@@ -100,6 +110,55 @@ export async function toggleCoupon(couponId: string, active: boolean): Promise<{
   const admin = createAdminClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (admin as any).from('supplier_coupons').update({ active }).eq('id', couponId).eq('supplier_id', user.id)
+  return { ok: true }
+}
+
+/** 단골 연구자들이 보낸 쿠폰 요청 목록 */
+export async function getCouponRequests(): Promise<IncomingCouponRequest[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const db = admin as any
+  const { data: reqs } = await db
+    .from('coupon_requests').select('id, researcher_id, message, status, created_at')
+    .eq('supplier_id', user.id).order('created_at', { ascending: false })
+  if (!reqs || reqs.length === 0) return []
+  const ids: string[] = reqs.map((r: { researcher_id: string }) => r.researcher_id)
+  const { data: profiles } = await db
+    .from('researcher_profiles').select('user_id, name, institution').in('user_id', ids)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const profileMap: Record<string, { name: string; institution: string | null }> = Object.fromEntries(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (profiles ?? []).map((p: any) => [p.user_id, { name: p.name, institution: p.institution ?? null }])
+  )
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return reqs.map((r: any) => ({
+    id: String(r.id),
+    researcherId: r.researcher_id,
+    researcherName: profileMap[r.researcher_id]?.name ?? '연구자',
+    institution: profileMap[r.researcher_id]?.institution ?? null,
+    message: r.message,
+    status: r.status as 'pending' | 'fulfilled' | 'declined',
+    createdAt: r.created_at,
+  }))
+}
+
+/** 쿠폰 요청에 대한 응답 (fulfilled = 발행, declined = 거절) */
+export async function respondToCouponRequest(
+  requestId: string,
+  status: 'fulfilled' | 'declined'
+): Promise<{ ok: boolean }> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { ok: false }
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await (admin as any).from('coupon_requests')
+    .update({ status })
+    .eq('id', requestId)
+    .eq('supplier_id', user.id)
   return { ok: true }
 }
 

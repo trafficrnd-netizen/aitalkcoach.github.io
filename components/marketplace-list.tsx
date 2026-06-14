@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { ITEM_TYPE_LABELS, ITEM_TYPE_ICONS, type ItemType } from '@/lib/categories'
 import { cn } from '@/lib/utils'
+import { Star, ShoppingCart, Tag } from 'lucide-react'
 
 type Request = {
   id: string
@@ -16,6 +17,10 @@ type Request = {
   created_at: string
   notes: string | null
   item_type: string | null
+  user_id?: string | null
+  delivery_city?: string | null
+  is_group_buy?: boolean | null
+  discount_requested?: boolean | null
 }
 
 const FILTER_TABS: { value: 'all' | ItemType; label: string; icon: string }[] = [
@@ -31,9 +36,10 @@ interface Props {
   itemCountMap: Record<string, number>
   bidCountMap: Record<string, number>
   myBidSet: string[]
+  preferredResearcherIds?: Set<string>
 }
 
-export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet }: Props) {
+export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet, preferredResearcherIds }: Props) {
   const [activeType, setActiveType] = useState<'all' | ItemType>('all')
   const myBids = new Set(myBidSet)
   const today = new Date()
@@ -41,6 +47,19 @@ export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet 
   const filtered = activeType === 'all'
     ? requests
     : requests.filter(r => (r.item_type ?? 'reagent') === activeType)
+
+  // 단골 연구자 요청을 상단으로 정렬
+  const sorted = preferredResearcherIds && preferredResearcherIds.size > 0
+    ? [...filtered].sort((a, b) => {
+        const aPreferred = a.user_id && preferredResearcherIds.has(a.user_id) ? 1 : 0
+        const bPreferred = b.user_id && preferredResearcherIds.has(b.user_id) ? 1 : 0
+        return bPreferred - aPreferred
+      })
+    : filtered
+
+  const preferredCount = preferredResearcherIds
+    ? sorted.filter(r => r.user_id && preferredResearcherIds.has(r.user_id)).length
+    : 0
 
   return (
     <>
@@ -76,26 +95,35 @@ export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet 
         )}
       </div>
 
+      {/* 단골 연구자 존재 시 안내 배지 */}
+      {preferredCount > 0 && (
+        <div className="flex items-center gap-1.5 mb-3 text-xs text-secondary font-medium">
+          <Star className="h-3.5 w-3.5 fill-secondary" />
+          단골 연구자 요청 {preferredCount}건 상단 표시
+        </div>
+      )}
+
       {/* 요청 목록 */}
-      {filtered.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-20 text-center text-muted-foreground text-sm">
           {activeType === 'all' ? '현재 공개된 견적 요청이 없습니다.' : `${ITEM_TYPE_LABELS[activeType as ItemType]} 요청이 없습니다.`}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {filtered.map(req => {
+          {sorted.map(req => {
             const alreadyBid = myBids.has(req.id)
             const itemCount = itemCountMap[req.id] ?? 0
             const bidCount = bidCountMap[req.id] ?? 0
             const isExpired = req.deadline && new Date(req.deadline) < today
             const itemType = (req.item_type ?? 'reagent') as ItemType
+            const isPreferred = req.user_id && preferredResearcherIds?.has(req.user_id)
 
             return (
               <div
                 key={req.id}
                 className={cn(
                   'rounded-lg border p-4',
-                  alreadyBid ? 'border-primary/30 bg-primary/5' : 'border-border bg-background'
+                  isPreferred ? 'border-secondary/40 bg-secondary/5' : alreadyBid ? 'border-primary/30 bg-primary/5' : 'border-border bg-background'
                 )}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -106,6 +134,11 @@ export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet 
                       <Badge variant="outline" className="text-xs">
                         {req.type === 'batch' ? `묶음 ${itemCount}개 품목` : '단건'}
                       </Badge>
+                      {isPreferred && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-medium text-secondary">
+                          <Star className="h-2.5 w-2.5 fill-secondary" /> 단골
+                        </span>
+                      )}
                       {alreadyBid && <Badge variant="secondary" className="text-xs">입찰 완료</Badge>}
                       {isExpired && <Badge variant="outline" className="text-xs text-muted-foreground">마감됨</Badge>}
                     </div>
@@ -115,7 +148,17 @@ export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet 
                           마감 {new Date(req.deadline).toLocaleDateString('ko-KR')}
                         </span>
                       )}
-                      {req.delivery_address && <span>📍 {req.delivery_address}</span>}
+                      {req.delivery_city && <span className="flex items-center gap-0.5">📍 {req.delivery_city}</span>}
+                      {req.is_group_buy && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary/15 px-1.5 py-0.5 text-[10px] font-medium text-secondary">
+                          <ShoppingCart className="h-2.5 w-2.5" /> 그룹바이
+                        </span>
+                      )}
+                      {req.discount_requested && (
+                        <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                          <Tag className="h-2.5 w-2.5" /> 할인요청
+                        </span>
+                      )}
                       <span>입찰 {bidCount}건</span>
                       <span className="text-muted-foreground/60">
                         {new Date(req.created_at).toLocaleDateString('ko-KR')} 게시

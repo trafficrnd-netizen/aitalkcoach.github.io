@@ -16,7 +16,7 @@ export default async function ResearcherBoardPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from('requests')
-      .select('id, title, type, deadline, delivery_address, created_at')
+      .select('id, title, type, deadline, delivery_address, delivery_city, is_group_buy, discount_requested, created_at')
       .eq('status', 'open')
       .order('created_at', { ascending: false })
       .limit(30),
