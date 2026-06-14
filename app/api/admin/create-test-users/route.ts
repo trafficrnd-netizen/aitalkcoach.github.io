@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 // One-time endpoint: POST /api/admin/create-test-users
 // Remove after use.
-export async function POST(_request: Request) {
+export async function POST() {
   // Temporary: no auth check — delete this file after use
 
   const admin = createAdminClient()
