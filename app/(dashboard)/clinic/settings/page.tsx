@@ -3,18 +3,10 @@ import { redirect } from 'next/navigation'
 import { Settings } from 'lucide-react'
 import { ChangePasswordForm } from '@/components/change-password-form'
 
-export default async function MediSupplierSettingsPage() {
+export default async function ClinicSettingsPage() {
   const supabase = await createClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
-
-  const { data: profile } = await db
-    .from('supplier_profiles')
-    .select('company_name, verticals')
-    .eq('user_id', user.id)
-    .maybeSingle()
 
   return (
     <div className="max-w-md space-y-8">
@@ -25,19 +17,13 @@ export default async function MediSupplierSettingsPage() {
 
       <div className="rounded-xl border border-border bg-card p-5 space-y-2">
         <h2 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">계정 정보</h2>
-        {profile?.company_name && (
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">회사명</span>
-            <span className="font-medium">{profile.company_name}</span>
-          </div>
-        )}
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">이메일</span>
           <span className="font-medium">{user.email}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">구분</span>
-          <span className="font-medium">공급사 (BidVibe Medi)</span>
+          <span className="font-medium">의원 (BidVibe Medi)</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">플랜</span>

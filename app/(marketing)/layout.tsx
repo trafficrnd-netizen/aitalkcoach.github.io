@@ -4,13 +4,19 @@ import { CopyProtect } from '@/components/layout/copy-protect'
 import { BriefingTicker } from '@/components/briefing-ticker'
 import { SiteFooter } from '@/components/layout/site-footer'
 import { createClient } from '@/lib/supabase/server'
+import { headers } from 'next/headers'
 
 export default async function MarketingLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // 로그인 상태를 조회하여 헤더에 전달
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') ?? ''
+  if (pathname.startsWith('/medi')) {
+    return <>{children}</>
+  }
+
   let headerUser: HeaderUser | null = null
   try {
     const supabase = await createClient()
@@ -20,7 +26,7 @@ export default async function MarketingLayout({
       headerUser = {
         email: user.email ?? '',
         dashboardPath: isSupplier ? '/supplier/board' : '/researcher/board',
-        roleLabel: isSupplier ? '공급자' : '연구자',
+        roleLabel: isSupplier ? '\uACF5\uAE09\uC790' : '\uC5F0\uAD6C\uC790',
       }
     }
   } catch {
