@@ -69,5 +69,5 @@ export async function createMediRequest(formData: FormData) {
     return { error: '품목 저장 중 오류가 발생했습니다.' }
   }
 
-  redirect('/medi/requests')
+  redirect('/clinic/requests')
 }

@@ -57,11 +57,10 @@ const supplierNav = [
 ]
 
 const clinicNav = [
-  { href: '/medi', key: 'sb.medi.dashboard', icon: LayoutDashboard },
-  { href: '/medi/request', key: 'sb.medi.request', icon: FlaskConical },
-  { href: '/medi/requests', key: 'sb.medi.myRequests', icon: FileText },
-  { href: '/medi/notifications', key: 'sb.notifications', icon: Bell },
-  { href: '/medi/settings', key: 'sb.settings', icon: Settings },
+  { href: '/clinic', key: 'sb.medi.dashboard', icon: LayoutDashboard },
+  { href: '/clinic/request', key: 'sb.medi.request', icon: FlaskConical },
+  { href: '/clinic/requests', key: 'sb.medi.myRequests', icon: FileText },
+  { href: '/clinic/settings', key: 'sb.settings', icon: Settings },
 ]
 
 interface SidebarProps {
