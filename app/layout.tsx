@@ -11,8 +11,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 const BASE_URL = 'https://ai-traffic.kr'
 
-const TITLE_KO = 'BidVibe — 연구자·공급사 매칭 플랫폼'
-const TITLE_BILINGUAL = 'BidVibe — 요청하면 견적이 다~ 온다 | Researcher–Supplier Matching'
+const TITLE_KO = 'BidVibe — 연구자·공급사 역경매 견적 플랫폼 | 수수료 0원'
+const TITLE_BILINGUAL = 'BidVibe — 요청하면 견적이 다~ 온다 | 수수료 없는 역경매 매칭'
 const DESC_BILINGUAL =
   '요청하면 견적이 다~ 온다. 수수료 없는 연구자·공급사 비공개 역경매 플랫폼. Commission-free sealed-bid platform for lab procurement.'
 
