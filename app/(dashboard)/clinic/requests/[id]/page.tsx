@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { Badge } from '@/components/ui/badge'
 import { acceptMediBid } from '@/lib/actions/medi-accept'
+import { LinkPreview } from '@/components/medi/link-preview'
 import { getServerT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
@@ -48,7 +49,7 @@ export default async function ClinicRequestDetailPage({
   // 요청 조회 (의원 소유 + aesthetic)
   const { data: request } = await (supabase as any)
     .from('requests')
-    .select('id, title, deadline, delivery_city, notes, item_type, status, created_at, vertical')
+    .select('id, title, deadline, delivery_city, notes, item_type, item_specs, status, created_at, vertical')
     .eq('id', params.id)
     .eq('researcher_id', user.id)
     .eq('vertical', 'aesthetic')
@@ -181,6 +182,12 @@ export default async function ClinicRequestDetailPage({
             <p className="mt-1 text-xs whitespace-pre-wrap">{request.notes}</p>
           )}
         </div>
+        {request.item_specs?.product_url && (
+          <div className="mt-3">
+            <p className="text-xs text-muted-foreground mb-1.5">제품 상세페이지</p>
+            <LinkPreview url={request.item_specs.product_url} readonly />
+          </div>
+        )}
       </div>
 
       {/* 입찰 섹션 */}

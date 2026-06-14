@@ -30,7 +30,7 @@ export const VERTICALS: Record<Vertical, VerticalConfig> = {
   },
   aesthetic: {
     id: 'aesthetic',
-    brand: 'BidVibe Medi',
+    brand: 'BidMedi',
     routePrefix: '/medi',
     certTypes: ['business', 'med_device'],
     // 전액 무료: 거래·가입 극대화를 위해 의원·공급사 모두 무료

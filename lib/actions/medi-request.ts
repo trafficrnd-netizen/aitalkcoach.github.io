@@ -22,6 +22,7 @@ export async function createMediRequest(formData: FormData) {
   const deliveryCity = (formData.get('deliveryCity') as string)?.trim() || null
   const notes        = (formData.get('notes') as string) || null
   const bidMode      = (formData.get('bidMode') as string) || 'open'
+  const productUrl   = (formData.get('productUrl') as string)?.trim() || null
 
   if (!productName) return { error: '제품명은 필수입니다.' }
   if (!qty || qty <= 0) return { error: '수량을 입력해주세요.' }
@@ -41,7 +42,11 @@ export async function createMediRequest(formData: FormData) {
       notes,
       bid_mode: bidMode,
       item_type: productType ?? 'device',
-      item_specs: productCode ? { code: productCode, vertical: VERTICAL } : { vertical: VERTICAL },
+      item_specs: {
+        ...(productCode ? { code: productCode } : {}),
+        vertical: VERTICAL,
+        ...(productUrl ? { product_url: productUrl } : {}),
+      },
       delivery_city: deliveryCity,
       vertical: VERTICAL,
     })
@@ -58,8 +63,7 @@ export async function createMediRequest(formData: FormData) {
     .insert({
       request_id: request.id,
       substance_name: productName,
-      qty,
-      unit,
+      qty,      unit,
     })
 
   if (itemError) {

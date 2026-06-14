@@ -81,7 +81,7 @@ async function notifyMediBidAccepted(supplierUserId: string, requestTitle: strin
   await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
-    subject: `[BidVibe Medi] 견적이 수락되었습니다 — "${requestTitle}"`,
+    subject: `[BidMedi] 견적이 수락되었습니다 — "${requestTitle}"`,
     html: `
       <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px;color:#1A2236;">
         <h2 style="color:#1E2F52;margin-bottom:8px;">🎉 견적이 수락되었습니다!</h2>
@@ -92,7 +92,7 @@ async function notifyMediBidAccepted(supplierUserId: string, requestTitle: strin
           내 입찰 확인하기 →
         </a>
         <p style="font-size:11px;color:#9ca3af;margin-top:20px;">
-          BidVibe Medi · 에스테틱 의료기기 소모품 견적 플랫폼 (ai-traffic.kr)
+          BidMedi · 에스테틱 의료기기 소모품 견적 플랫폼 (ai-traffic.kr)
         </p>
       </div>
     `,

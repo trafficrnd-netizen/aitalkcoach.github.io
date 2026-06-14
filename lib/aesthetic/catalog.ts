@@ -51,9 +51,9 @@ export const AESTHETIC_TYPE_DESC_SUPPLIER: Record<AestheticType, string> = {
 
 export const AESTHETIC_TYPE_ICONS: Record<AestheticType, string> = {
   hygiene: '🧤',
-  pack:    '🫧',
+  pack:    '😦',
   care:    '🧴',
-  tool:    '🪡',
+  tool:    '✂',
   bed:     '🛏',
   textile: '🧺',
   device:  '⚡',

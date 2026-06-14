@@ -23,7 +23,7 @@ export default async function ClinicSettingsPage() {
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">구분</span>
-          <span className="font-medium">의원 (BidVibe Medi)</span>
+          <span className="font-medium">의원 (BidMedi)</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">플랜</span>

@@ -37,7 +37,7 @@ export default async function MediSupplierSettingsPage() {
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">구분</span>
-          <span className="font-medium">공급사 (BidVibe Medi)</span>
+          <span className="font-medium">공급사 (BidMedi)</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">플랜</span>

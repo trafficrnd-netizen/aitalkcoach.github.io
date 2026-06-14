@@ -5,6 +5,7 @@ import { ArrowLeft, MapPin, Clock, FileText } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MediBidForm } from '@/components/medi/medi-bid-form'
+import { LinkPreview } from '@/components/medi/link-preview'
 import { getServerT } from '@/lib/i18n/server'
 
 const ITEM_TYPE_LABELS: Record<string, string> = {
@@ -32,7 +33,7 @@ export default async function MediBidPage({ params }: { params: { requestId: str
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: request } = await (supabase as any)
     .from('requests')
-    .select('id, title, deadline, delivery_city, notes, item_type, status, vertical')
+    .select('id, title, deadline, delivery_city, notes, item_type, item_specs, status, vertical')
     .eq('id', params.requestId)
     .eq('vertical', 'aesthetic')
     .single()
@@ -99,6 +100,12 @@ export default async function MediBidPage({ params }: { params: { requestId: str
                 </div>
               )}
             </div>
+            {request.item_specs?.product_url && (
+              <div className="mt-3">
+                <p className="text-xs text-muted-foreground mb-1.5">제품 상세페이지</p>
+                <LinkPreview url={request.item_specs.product_url} readonly />
+              </div>
+            )}
           </div>
         </div>
 

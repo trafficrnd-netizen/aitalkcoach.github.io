@@ -104,7 +104,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
     <>
       <div className="flex h-16 items-center justify-between border-b border-border px-4">
         <Link href={isMediRole ? '/medi' : '/'} className="flex items-center">
-          <img src={isMediRole ? '/logo-medi.svg' : '/logo.svg'} alt={isMediRole ? 'Medi' : 'BidVibe'} className="h-7 w-auto" />
+          <img src={isMediRole ? '/logo-medi.svg' : '/logo.svg'} alt={isMediRole ? 'BidMedi' : 'BidVibe'} className="h-7 w-auto" />
         </Link>
         <button
           className="md:hidden rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -230,7 +230,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
           <Menu className="h-5 w-5" />
         </button>
         <Link href={isMediRole ? '/medi' : '/'} className="flex items-center">
-          <img src={isMediRole ? '/logo-medi.svg' : '/logo.svg'} alt={isMediRole ? 'Medi' : 'BidVibe'} className="h-7 w-auto" />
+          <img src={isMediRole ? '/logo-medi.svg' : '/logo.svg'} alt={isMediRole ? 'BidMedi' : 'BidVibe'} className="h-7 w-auto" />
         </Link>
       </div>
 

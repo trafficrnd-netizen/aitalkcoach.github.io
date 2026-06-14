@@ -74,7 +74,7 @@ export default async function ClinicDashboardPage() {
       {/* 헤더 */}
       <div className="flex items-center gap-2">
         <Sparkles className="h-5 w-5 text-primary" />
-        <h1 className="text-xl font-bold">BidVibe Medi 대시보드</h1>
+        <h1 className="text-xl font-bold">BidMedi 대시보드</h1>
         <span className="flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
           <Gift className="h-3 w-3" /> 전액 무료
         </span>

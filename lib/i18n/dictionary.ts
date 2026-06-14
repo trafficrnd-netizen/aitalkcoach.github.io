@@ -807,7 +807,7 @@ export const dictionary: Record<Lang, Dict> = {
     'spw.publicDesc': '인증·티어 보유 공급자는 검색 가능한 공개 프로필을 가집니다. 카탈로그·평점·티어가 표시되어 신규 고객이 찾아옵니다.',
     'spw.errThreshold': '아직 인증 연구자 {a}명 — {b}명 필요',
     'spw.errIssue': '발급 실패: {reason}',
-    // ── BidVibe Medi 요청 폼 ──
+    // ── BidMedi 요청 폼 ──
     'medi.req.title': '소모품 견적 요청',
     'medi.req.sub': '필요한 제품을 등록하면 인증 공급사가 견적을 제출합니다.',
     'medi.req.productName': '제품명',
@@ -835,8 +835,8 @@ export const dictionary: Record<Lang, Dict> = {
     'sb.medi.myRequests': '내 요청',
     'sb.medi.freePlan': '프로모션 기간 무료 플랜',
     'sb.medi.freeHint': '요청·입찰·비교 모두 무료',
-    'sb.medi.clinicAccount': '의원 계정',
-    'sb.medi.supplierAccount': '에스테틱 공급사 계정',
+    'sb.medi.clinicAccount': '구매자',
+    'sb.medi.supplierAccount': '공급사',
     'sb.medi.marketplace': '입찰광장',
     'sb.medi.myBids': '내 입찰',
     // ── medi 공급사 대시보드 ──
@@ -891,7 +891,7 @@ export const dictionary: Record<Lang, Dict> = {
     'medi.compare.delivery': '납기',
     'medi.compare.accept': '수락',
     'medi.compare.accepting': '처리 중…',
-    'medi.brand': 'BidVibe Medi',
+    'medi.brand': 'BidMedi',
     'medi.tagline': '미용·에스테틱 소모품, 비공개 최저가로',
     'medi.free.badge': '프로모션 기간 무료',
     'medi.it.label': '품목 유형',
@@ -924,9 +924,9 @@ export const dictionary: Record<Lang, Dict> = {
     'medi.find.callCta': '전화 견적',
     'medi.find.nudge': '※ 전화 견적은 한 곳 가격입니다. 요청하면 인증 공급사들이 비공개로 경쟁해 더 낮은 가격이 모입니다 — 무료.',
     // ─── 에스테틱 가입/인증 ───────────────────────────────────────────────────
-    'medi.signup.clinicTitle': 'BidVibe Medi 의원 가입',
+    'medi.signup.clinicTitle': 'BidMedi 의원 가입',
     'medi.signup.clinicSub': '의원·클리닉 전용 무료 가입. 인증 공급사들의 비공개 경쟁 견적을 받으세요.',
-    'medi.signup.supplierTitle': 'BidVibe Medi 공급사 가입',
+    'medi.signup.supplierTitle': 'BidMedi 공급사 가입',
     'medi.signup.supplierSub': '의료기기·에스테틱 소모품 공급사 무료 가입. 의원 요청에 비공개로 견적을 제출하세요.',
     'medi.signup.freeBadge': '프로모션 기간 무료 · 수수료 0%',
     'medi.signup.clinicName': '의원명',
@@ -941,7 +941,7 @@ export const dictionary: Record<Lang, Dict> = {
     'medi.signup.contactPhone': '담당자 휴대폰',
     'medi.signup.submit': '무료 가입하기',
     'medi.signup.toLogin': '이미 계정이 있으신가요? 로그인',
-    'medi.signup.toMedi': 'BidVibe Medi로 돌아가기',
+    'medi.signup.toMedi': 'BidMedi로 돌아가기',
     'medi.cert.medDevice': '의료기기 판매업 허가증',
     'medi.cert.medDeviceDesc': '의료기기 판매업 허가증 또는 신고증 (PDF·JPG·PNG)',
     'medi.cert.bizReg': '사업자등록증',
@@ -1928,8 +1928,8 @@ export const dictionary: Record<Lang, Dict> = {
     'spw.publicDesc': 'Verified, tiered suppliers get a searchable public profile showing catalog, ratings, and tier — so new customers can find them.',
     'spw.errThreshold': 'Verified researchers: {a} — {b} required',
     'spw.errIssue': 'Issue failed: {reason}',
-    // ── BidVibe Medi 요청 폼 ──
-    'medi.brand': 'BidVibe Medi',
+    // ── BidMedi 요청 폼 ──
+    'medi.brand': 'BidMedi',
     'medi.tagline': 'Aesthetic supplies at the sealed-bid lowest price',
     'medi.free.badge': 'Promotion period — free',
     'medi.it.label': 'Item type',
@@ -1962,9 +1962,9 @@ export const dictionary: Record<Lang, Dict> = {
     'medi.find.callCta': 'Call for quote',
     'medi.find.nudge': '※ A phone quote is one supplier\'s price. Request here and verified suppliers compete privately for a lower price — free.',
     // ─── Aesthetic signup/cert ────────────────────────────────────────────────
-    'medi.signup.clinicTitle': 'BidVibe Medi — Clinic Sign Up',
+    'medi.signup.clinicTitle': 'BidMedi — Clinic Sign Up',
     'medi.signup.clinicSub': 'Free sign-up for clinics. Receive sealed-bid competitive quotes from verified suppliers.',
-    'medi.signup.supplierTitle': 'BidVibe Medi — Supplier Sign Up',
+    'medi.signup.supplierTitle': 'BidMedi — Supplier Sign Up',
     'medi.signup.supplierSub': 'Free sign-up for aesthetic device & consumable suppliers. Submit private quotes on clinic requests.',
     'medi.signup.freeBadge': 'Promotion period — free · 0% commission',
     'medi.signup.clinicName': 'Clinic name',
@@ -1979,7 +1979,7 @@ export const dictionary: Record<Lang, Dict> = {
     'medi.signup.contactPhone': 'Contact mobile',
     'medi.signup.submit': 'Sign up for free',
     'medi.signup.toLogin': 'Already have an account? Log in',
-    'medi.signup.toMedi': 'Back to BidVibe Medi',
+    'medi.signup.toMedi': 'Back to BidMedi',
     'medi.cert.medDevice': 'Medical device dealer license',
     'medi.cert.medDeviceDesc': 'Medical device sales permit or notification (PDF·JPG·PNG)',
     'medi.cert.bizReg': 'Business registration certificate',
@@ -1990,7 +1990,7 @@ export const dictionary: Record<Lang, Dict> = {
     'medi.cert.badge.verified': 'Verified',
     'medi.cert.badge.rejected': 'Rejected',
 
-    // ── BidVibe Medi 요청 폼 ──
+    // ── BidMedi 요청 폼 ──
     'medi.req.title': 'Request a Quote',
     'medi.req.sub': 'Post your needs and certified suppliers will submit quotes.',
     'medi.req.productName': 'Product name',
@@ -2018,8 +2018,8 @@ export const dictionary: Record<Lang, Dict> = {
     'sb.medi.myRequests': 'My requests',
     'sb.medi.freePlan': 'Promotion period — free',
     'sb.medi.freeHint': 'Request, bid & compare — all free',
-    'sb.medi.clinicAccount': 'Clinic account',
-    'sb.medi.supplierAccount': 'Aesthetic supplier account',
+    'sb.medi.clinicAccount': 'Buyer',
+    'sb.medi.supplierAccount': 'Supplier',
     'sb.medi.marketplace': 'Marketplace',
     'sb.medi.myBids': 'My bids',
     // ── medi supplier dashboard ──

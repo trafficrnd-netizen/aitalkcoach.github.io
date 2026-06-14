@@ -1,15 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { AddressSearch } from '@/components/address-search'
 import { ProductSearch } from '@/components/medi/product-search'
+import { LinkPreview } from '@/components/medi/link-preview'
 import { createMediRequest } from '@/lib/actions/medi-request'
 import { useT } from '@/lib/i18n/context'
 import { cn } from '@/lib/utils'
-import { Clock, CalendarClock, Sparkles, ArrowRight, ArrowLeft, Gift } from 'lucide-react'
+import { Clock, CalendarClock, Sparkles, ArrowRight, ArrowLeft, Gift, Link as LinkIcon } from 'lucide-react'
 import {
   AESTHETIC_TYPES,
   AESTHETIC_TYPE_LABELS,
@@ -31,6 +32,7 @@ interface FormState {
   deliveryCity: string
   notes: string
   bidMode: BidMode
+  productUrl: string
 }
 
 const EMPTY: FormState = {
@@ -43,6 +45,7 @@ const EMPTY: FormState = {
   deliveryCity: '',
   notes: '',
   bidMode: 'open',
+  productUrl: '',
 }
 
 export default function MediRequestPage() {
@@ -51,6 +54,20 @@ export default function MediRequestPage() {
   const [form, setForm] = useState<FormState>(EMPTY)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [urlInput, setUrlInput] = useState('')
+  const [previewUrl, setPreviewUrl] = useState('')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // URL 입력 디바운스: 800ms 후 미리보기 업데이트
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(() => {
+      setPreviewUrl(urlInput.trim())
+      set('productUrl', urlInput.trim())
+    }, 800)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlInput])
 
   function set(k: keyof FormState, v: string) {
     setForm(prev => ({ ...prev, [k]: v }))
@@ -78,6 +95,7 @@ export default function MediRequestPage() {
     fd.set('deliveryCity', form.deliveryCity)
     fd.set('notes', form.notes)
     fd.set('bidMode', form.bidMode)
+    fd.set('productUrl', form.productUrl)
     const result = await createMediRequest(fd)
     if (result?.error) {
       setError(result.error)
@@ -109,6 +127,14 @@ export default function MediRequestPage() {
           <Row label={t('medi.req.deliveryCity')} value={form.deliveryCity} />
           <Row label={t('medi.req.bidMode')} value={form.bidMode === 'open' ? t('medi.req.bidModeOpen') : t('medi.req.bidModeDeadline')} />
           {form.notes && <Row label={t('medi.req.notes')} value={form.notes} />}
+          {form.productUrl && (
+            <div className="flex gap-2">
+              <span className="w-28 shrink-0 text-muted-foreground">제품 링크</span>
+              <div className="flex-1 min-w-0">
+                <LinkPreview url={form.productUrl} readonly />
+              </div>
+            </div>
+          )}
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -250,8 +276,29 @@ export default function MediRequestPage() {
             value={form.deliveryCity}
             onChange={v => set('deliveryCity', v)}
             label={t('medi.req.deliveryCity')}
-            id="deliveryCity"
+                      id="deliveryCity"
           />
+        </div>
+
+        {/* 제품 상세페이지 URL */}
+        <div className="space-y-1.5">
+          <Label htmlFor="productUrl" className="flex items-center gap-1">
+            <LinkIcon className="h-3.5 w-3.5" />
+            제품 상세페이지 링크 <span className="text-muted-foreground font-normal">(선택)</span>
+          </Label>
+          <Input
+            id="productUrl"
+            type="url"
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            placeholder="https://..."
+          />
+          {previewUrl && (
+            <LinkPreview
+              url={previewUrl}
+              onClear={() => { setUrlInput(''); setPreviewUrl(''); set('productUrl', '') }}
+            />
+          )}
         </div>
 
         {/* 추가 요청사항 */}

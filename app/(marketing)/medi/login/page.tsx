@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { MediLoginForm } from './medi-login-form'
 
-export const metadata = { title: 'BidVibe Medi 로그인' }
+export const metadata = { title: 'BidMedi 로그인' }
 
 export default function MediLoginPage() {
   return (

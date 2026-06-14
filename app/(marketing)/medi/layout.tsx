@@ -55,11 +55,11 @@ export default async function MediMarketingLayout({
       {/* 심플 Medi 푸터 */}
       <footer className="border-t border-border py-6">
         <div className="container flex flex-col items-center gap-1 text-xs text-muted-foreground sm:flex-row sm:justify-between">
-          <span>© {new Date().getFullYear()} BidVibe Medi — 에스테틱 소모품 비공개 역경매 플랫폼</span>
+          <span>© {new Date().getFullYear()} BidMedi — 에스테틱 소모품 비공개 역경매 플랫폼</span>
           <div className="flex gap-4">
             <a href="/terms" className="hover:text-foreground transition-colors">이용약관</a>
             <a href="/privacy" className="hover:text-foreground transition-colors">개인정보처리방침</a>
-            <a href="/medi" className="hover:text-foreground transition-colors">BidVibe Medi 홈</a>
+            <a href="/medi" className="hover:text-foreground transition-colors">BidMedi 홈</a>
           </div>
         </div>
       </footer>
