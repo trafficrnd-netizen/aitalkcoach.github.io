@@ -67,7 +67,7 @@ export default async function ClinicRequestDetailPage({
     .eq('request_id', params.id)
 
   let bids: any[] = []
-  let supplierMap: Record<string, { company_name: string; cert_status: string | null }> = {}
+  const supplierMap: Record<string, { company_name: string; cert_status: string | null }> = {}
 
   if (showBids) {
     const { data: rawBids } = await (supabase as any)

@@ -10,6 +10,7 @@ const VERTICAL = 'aesthetic' as const
 // ─────────────────────────────────────────────────────────────────────────────
 // 에스테틱 입찰 수락 — 크레딧/토큰 차감 없음 (isFree guard)
 // ─────────────────────────────────────────────────────────────────────────────
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function acceptMediBid(bidId: string, requestId: string, _formData: FormData) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
