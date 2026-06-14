@@ -8,7 +8,6 @@ import {
   AESTHETIC_TYPES,
   AESTHETIC_TYPE_LABELS,
   AESTHETIC_TYPE_ICONS,
-  aestheticLabel,
   type AestheticType,
 } from '@/lib/aesthetic/catalog'
 

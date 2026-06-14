@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { isFree } from '@/lib/verticals'
 
 const VERTICAL = 'aesthetic'
 
@@ -28,9 +27,7 @@ export async function createMediRequest(formData: FormData) {
   if (!qty || qty <= 0) return { error: '수량을 입력해주세요.' }
   if (!deliveryCity) return { error: '배송 도시명은 필수입니다.' }
 
-  // 무료 버티컬 — 크레딧/구독 체크 완전 우회
-  const _free = isFree(VERTICAL) // always true for aesthetic
-
+  // 무료 버티컬 — 크레딧/구독 체크 완전 우회 (isFree(VERTICAL) === true)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
