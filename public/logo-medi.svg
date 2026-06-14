@@ -1,15 +1,6 @@
 <svg viewBox="0 0 148 32" xmlns="http://www.w3.org/2000/svg" fill="none">
-  <!-- Main 4-point sparkle: center (13,16), arms ~9px -->
   <path d="M13 7 L14.8 13.5 L21.5 15.5 L14.8 17.5 L13 24 L11.2 17.5 L4.5 15.5 L11.2 13.5 Z" fill="#7C3AED"/>
-  <!-- Small sparkle: center (23,7), arms ~4px -->
   <path d="M23 3 L24 7 L28 8 L24 9 L23 13 L22 9 L18 8 L22 7 Z" fill="#A78BFA"/>
-  <!-- Tiny accent dot -->
   <circle cx="24" cy="23" r="1.8" fill="#C4B5FD"/>
-  <!-- BidMedi wordmark -->
-  <text x="33" y="23"
-    font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif"
-    font-size="20"
-    font-weight="900"
-    fill="#5B21B6"
-    letter-spacing="-0.5">BidMedi</text>
+  <text x="33" y="23" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif" font-size="20" font-weight="900" fill="#5B21B6" letter-spacing="-0.5">BidMedi</text>
 </svg>
