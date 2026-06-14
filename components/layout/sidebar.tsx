@@ -24,6 +24,7 @@ import {
   Loader2,
   UserPlus,
   Users,
+  Gift,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/lib/actions/auth'
@@ -55,8 +56,16 @@ const supplierNav = [
   { href: '/supplier/guide', key: 'sb.guide', icon: BookOpen },
 ]
 
+const clinicNav = [
+  { href: '/medi', key: 'sb.medi.dashboard', icon: LayoutDashboard },
+  { href: '/medi/request', key: 'sb.medi.request', icon: FlaskConical },
+  { href: '/medi/requests', key: 'sb.medi.myRequests', icon: FileText },
+  { href: '/medi/notifications', key: 'sb.notifications', icon: Bell },
+  { href: '/medi/settings', key: 'sb.settings', icon: Settings },
+]
+
 interface SidebarProps {
-  role: 'researcher' | 'supplier'
+  role: 'researcher' | 'supplier' | 'clinic'
   credits?: number
 }
 
@@ -64,7 +73,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const t = useT()
-  const navItems = role === 'researcher' ? researcherNav : supplierNav
+  const navItems = role === 'researcher' ? researcherNav : role === 'clinic' ? clinicNav : supplierNav
   const [mobileOpen, setMobileOpen] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
@@ -78,7 +87,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
     router.push('/login')
   }
 
-  const creditsHref = `/${role}/credits`
+  const creditsHref = role === 'clinic' ? '/medi' : `/${role}/credits`
 
   const sidebarContent = (
     <>
@@ -132,41 +141,55 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
       </nav>
 
       <div className="border-t border-border p-3 space-y-2">
-        <Link
-          href={creditsHref}
-          onClick={() => setPendingHref(creditsHref)}
-          className={cn(
-            'block rounded-lg border p-3 transition-colors',
-            pathname.startsWith(creditsHref)
-              ? 'border-accent bg-accent/10'
-              : 'border-accent/40 bg-accent/5 hover:bg-accent/10'
-          )}
-        >
-          <div className="flex items-center justify-between">
+        {role === 'clinic' ? (
+          <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2.5">
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20">
-                <Coins className="h-4 w-4 text-accent-foreground" />
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100">
+                <Gift className="h-4 w-4 text-emerald-600" />
               </span>
               <div>
-                <p className="text-[11px] leading-tight text-muted-foreground">{t('sb.myCredits')}</p>
-                <p className="text-sm font-bold leading-tight text-foreground">
-                  {credits.toLocaleString()} P
-                </p>
+                <p className="text-[11px] leading-tight text-emerald-700 font-semibold">{t('sb.medi.freePlan')}</p>
+                <p className="text-[10px] leading-tight text-emerald-600">{t('sb.medi.freeHint')}</p>
               </div>
             </div>
-            {pendingHref === creditsHref ? (
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
           </div>
-          <p className="mt-2 text-[11px] leading-snug text-accent-foreground/80">
-            {t('sb.creditsHint')}
-          </p>
-        </Link>
+        ) : (
+          <Link
+            href={creditsHref}
+            onClick={() => setPendingHref(creditsHref)}
+            className={cn(
+              'block rounded-lg border p-3 transition-colors',
+              pathname.startsWith(creditsHref)
+                ? 'border-accent bg-accent/10'
+                : 'border-accent/40 bg-accent/5 hover:bg-accent/10'
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent/20">
+                  <Coins className="h-4 w-4 text-accent-foreground" />
+                </span>
+                <div>
+                  <p className="text-[11px] leading-tight text-muted-foreground">{t('sb.myCredits')}</p>
+                  <p className="text-sm font-bold leading-tight text-foreground">
+                    {credits.toLocaleString()} P
+                  </p>
+                </div>
+              </div>
+              {pendingHref === creditsHref ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+            <p className="mt-2 text-[11px] leading-snug text-accent-foreground/80">
+              {t('sb.creditsHint')}
+            </p>
+          </Link>
+        )}
 
         <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-          <span>{role === 'researcher' ? t('sb.researcherAccount') : t('sb.supplierAccount')}</span>
+          <span>{role === 'researcher' ? t('sb.researcherAccount') : role === 'clinic' ? t('sb.medi.clinicAccount') : t('sb.supplierAccount')}</span>
           <LanguageToggle variant="inline" />
         </div>
         <button
