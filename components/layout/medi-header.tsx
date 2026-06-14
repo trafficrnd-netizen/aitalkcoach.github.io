@@ -31,7 +31,7 @@ export function MediHeader({ user }: { user?: MediHeaderUser | null }) {
 
         {/* 로고 — /medi 복귀 */}
         <Link href="/medi" className="flex items-center gap-2 shrink-0">
-          <img src="/logo-medi.svg" alt="Medi" className="h-8 w-auto" />
+          <img src="/logo-medi.svg" alt="BidMedi" className="h-8 w-auto" />
           <span className="hidden sm:inline text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">
             프로모션 기간 무료
           </span>
@@ -74,11 +74,11 @@ export function MediHeader({ user }: { user?: MediHeaderUser | null }) {
                 href="/signup/clinic"
                 className={buttonVariants({ size: 'sm' })}
               >
-                의원 가입
+                구매자 가입
               </Link>
               <Link
                 href="/signup/medi-supplier"
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'hidden md:inline-flex')}
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}
               >
                 공급사 가입
               </Link>

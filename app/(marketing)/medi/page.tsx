@@ -7,14 +7,13 @@ import { ShieldCheck, Sparkles, Gift, ArrowRight } from 'lucide-react'
 
 /**
  * BidMedi — 미용·에스테틱 소모품 비공개 역경매 랜딩.
- * 전액 무료(의원·공급사) 메시지를 전면에 둔다.
+ * 전액 무료(구매자·공급사) 메시지를 전면에 둔다.
  */
 export default function MediLandingPage() {
   const t = useT()
-
   return (
-    <main className="mx-auto max-w-3xl px-5 py-16">
-      <div className="flex items-center gap-2 mb-4">
+    <main className="mx-auto max-w-3xl px-5 pt-8 pb-6 sm:py-16">
+      <div className="flex items-center gap-2 mb-3">
         <Sparkles className="h-5 w-5 text-primary" />
         <span className="text-lg font-extrabold tracking-tight">{t('medi.brand')}</span>
         <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
@@ -23,13 +22,14 @@ export default function MediLandingPage() {
       </div>
 
       <h1 className="text-3xl sm:text-4xl font-black leading-tight tracking-tight">
-        {t('medi.landing.h1')}
+        찾지 말고, 비공개 최저가로<br />받으세요
       </h1>
-      <p className="mt-4 text-base text-muted-foreground leading-relaxed">
+      <p className="mt-3 text-base text-muted-foreground leading-relaxed">
         {t('medi.tagline')}
       </p>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      {/* 혜택 카드 — 모바일 숨김, sm+ 표시 */}
+      <div className="hidden sm:grid mt-6 gap-3 sm:grid-cols-3">
         {([
           ['medi.landing.benefit1Title', 'medi.landing.benefit1Desc'],
           ['medi.landing.benefit2Title', 'medi.landing.benefit2Desc'],
@@ -43,7 +43,7 @@ export default function MediLandingPage() {
         ))}
       </div>
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-6 flex flex-wrap gap-3">
         <Link href="/signup/clinic" className={buttonVariants({ size: 'lg' })}>
           {t('medi.landing.ctaClinic')} <ArrowRight className="ml-1 h-4 w-4" />
         </Link>
@@ -52,10 +52,10 @@ export default function MediLandingPage() {
         </Link>
       </div>
 
-      <p className="mt-6 text-xs text-muted-foreground">{t('medi.landing.freeNote')}</p>
+      <p className="mt-4 text-xs text-muted-foreground">{t('medi.landing.freeNote')}</p>
 
       {/* Magazine Editorial Photo Grid */}
-      <section className="mt-16 -mx-5 overflow-hidden">
+      <section className="mt-8 sm:mt-14 -mx-5 overflow-hidden">
 
         {/* Section label */}
         <div className="px-5 mb-5 flex items-center gap-4">
