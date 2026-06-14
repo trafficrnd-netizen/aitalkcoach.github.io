@@ -15,7 +15,7 @@ export default async function MediLayout({
   } catch { /* ignore */ }
 
   return (
-    <div className="flex h-screen overflow-hidden select-none" data-protect>
+    <div className="medi-theme flex h-screen overflow-hidden select-none" data-protect>
       <Sidebar role="clinic" />
       <div className="flex flex-1 flex-col overflow-hidden">
         <div className="h-14 shrink-0 md:hidden" />

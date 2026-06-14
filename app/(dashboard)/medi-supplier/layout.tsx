@@ -17,7 +17,7 @@ export default async function MediSupplierLayout({ children }: { children: React
   if (!supplier) redirect('/signup/medi-supplier')
 
   return (
-    <div className="flex min-h-screen">
+    <div className="medi-theme flex min-h-screen">
       <Sidebar role="medi-supplier" />
       <main className="flex-1 overflow-y-auto pt-14 md:pt-0">
         <div className="mx-auto max-w-4xl px-4 py-8">

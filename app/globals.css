@@ -167,3 +167,43 @@ html.devtools-open [data-protect] {
 .blog-prose blockquote { border-left: 4px solid hsl(var(--accent)); background: hsl(var(--muted) / 0.4); padding: 0.8rem 1.2rem; border-radius: 0 0.5rem 0.5rem 0; margin: 1.4rem 0; color: hsl(var(--muted-foreground)); }
 .blog-prose code { background: hsl(var(--muted)); padding: 0.15rem 0.4rem; border-radius: 0.3rem; font-size: 0.9em; }
 .blog-prose hr { border: none; border-top: 1px solid hsl(var(--border)); margin: 2rem 0; }
+
+
+/* ── Medi 전용 테마 — Soft Luxury Warm Tone ─────────────────────────
+ * Primary  : #9F7AEA  Soft Purple  hsl(260 73% 70%)
+ * Secondary: #F8C1C8  Baby Pink    hsl(352 80% 87%)
+ * Accent   : #F4B942  Gold Amber   hsl(40 89% 61%)
+ * Background: #FDF9F4 Ivory        hsl(33 69% 97%)
+ * Text Dark: #3F2A2A  Dark Brown   hsl(0 20% 21%)
+ * ─────────────────────────────────────────────────────────────────── */
+.medi-theme {
+  --background: 33 69% 97%;
+  --foreground: 0 20% 21%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 0 20% 21%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 20% 21%;
+
+  --primary: 260 73% 70%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 352 80% 87%;
+  --secondary-foreground: 0 20% 30%;
+
+  --accent: 40 89% 61%;
+  --accent-foreground: 0 20% 21%;
+
+  --muted: 33 40% 92%;
+  --muted-foreground: 0 12% 48%;
+
+  --destructive: 0 70% 48%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 33 35% 88%;
+  --input: 33 35% 88%;
+  --ring: 260 73% 70%;
+
+  --radius: 0.75rem;
+}

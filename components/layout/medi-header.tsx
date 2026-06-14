@@ -32,11 +32,11 @@ export function MediHeader({ user }: { user?: MediHeaderUser | null }) {
 
         {/* 로고 — /medi 복귀 */}
         <Link href="/medi" className="flex items-center gap-2 shrink-0">
-          <Sparkles className="h-5 w-5 text-teal-500" />
+          <Sparkles className="h-5 w-5 text-violet-400" />
           <span className="font-black text-base tracking-tight">
-            BidVibe <span className="text-teal-500">Medi</span>
+            BidVibe <span className="text-violet-400">Medi</span>
           </span>
-          <span className="hidden sm:inline text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+          <span className="hidden sm:inline text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">
             전액 무료
           </span>
         </Link>

@@ -47,7 +47,7 @@ export default async function MediMarketingLayout({
   }
 
   return (
-    <div className="flex min-h-screen flex-col select-none">
+    <div className="medi-theme flex min-h-screen flex-col select-none">
       <CopyProtect />
       <MediHeader user={headerUser} />
       <main className="flex-1">{children}</main>
