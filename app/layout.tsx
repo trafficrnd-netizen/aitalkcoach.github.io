@@ -14,8 +14,7 @@ const BASE_URL = 'https://ai-traffic.kr'
 const TITLE_KO = 'BidVibe — 연구자·공급사 매칭 플랫폼'
 const TITLE_BILINGUAL = 'BidVibe — 요청하면 견적이 다~ 온다 | Researcher–Supplier Matching'
 const DESC_BILINGUAL =
-  '요청하면 견적이 다~ 온다. 연구자-공급사 매칭 플랫폼. 수수료 없는 비공개 역경매로 쉽게 해보세요. ' +
-  '· Request it — quotes come pouring in. A researcher–supplier matching platform. Commission-free sealed-bid reverse auctions.'
+  '요청하면 견적이 다~ 온다. 수수료 없는 연구자·공급사 비공개 역경매 플랫폼. Commission-free sealed-bid platform for lab procurement.'
 
 const OG_IMAGE = '/og-image.jpg'
 
