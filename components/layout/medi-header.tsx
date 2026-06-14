@@ -37,7 +37,7 @@ export function MediHeader({ user }: { user?: MediHeaderUser | null }) {
             BidVibe <span className="text-violet-400">Medi</span>
           </span>
           <span className="hidden sm:inline text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700">
-            전액 무료
+            프로모션 기간 전액무료
           </span>
         </Link>
 

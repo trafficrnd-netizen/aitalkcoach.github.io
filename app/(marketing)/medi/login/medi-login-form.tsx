@@ -42,7 +42,7 @@ export function MediLoginForm() {
         </div>
         <p className="text-sm text-muted-foreground">에스테틱 소모품 비공개 역경매 플랫폼</p>
         <span className="inline-block mt-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
-          전액 무료
+          프로모션 기간 전액무료
         </span>
       </div>
 
