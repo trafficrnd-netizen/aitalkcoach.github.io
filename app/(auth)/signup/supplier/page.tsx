@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { useT } from '@/lib/i18n/context'
 import {
-  getRegulations, COUNTRY_REGULATIONS, COUNTRY_MAP,
+  getRegulations, COUNTRY_MAP,
   type CountryCode, type CountryRegulation,
 } from '@/lib/country-regulations'
 import { cn } from '@/lib/utils'
