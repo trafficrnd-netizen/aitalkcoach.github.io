@@ -35,8 +35,24 @@ export async function login(formData: FormData) {
 
   if (!data.user) return { error: '로그인에 실패했습니다.' }
 
-  const userType = data.user.user_metadata?.user_type
-  return { destination: userType === 'supplier' ? '/supplier/board' : '/researcher/board' }
+  const userType = data.user.user_metadata?.user_type as string | undefined
+
+  if (userType === 'clinic') {
+    return { destination: '/clinic' }
+  }
+  if (userType === 'supplier') {
+    // aesthetic vertical 여부 확인
+    const supabase2 = await createClient()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: sp } = await (supabase2 as any)
+      .from('supplier_profiles')
+      .select('verticals')
+      .eq('user_id', data.user.id)
+      .maybeSingle()
+    const isAesthetic = (sp?.verticals as string[] | null)?.includes('aesthetic')
+    return { destination: isAesthetic ? '/medi-supplier' : '/supplier/board' }
+  }
+  return { destination: '/researcher/board' }
 }
 
 export async function signupResearcher(formData: FormData) {

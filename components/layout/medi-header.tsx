@@ -69,7 +69,7 @@ export function MediHeader({ user }: { user?: MediHeaderUser | null }) {
           ) : (
             <>
               <Link
-                href="/login"
+                href="/medi/login"
                 className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'hidden sm:inline-flex')}
               >
                 로그인
