@@ -1,8 +1,10 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 import { isFree } from '@/lib/verticals'
+import { resend, FROM_EMAIL } from '@/lib/resend'
 
 const VERTICAL = 'aesthetic' as const
 
@@ -38,7 +40,7 @@ export async function createMediBid(formData: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: request } = await (supabase as any)
     .from('requests')
-    .select('id, user_id, title, status, vertical')
+    .select('id, researcher_id, title, status, vertical')
     .eq('id', requestId)
     .eq('status', 'open')
     .eq('vertical', VERTICAL)
@@ -46,7 +48,7 @@ export async function createMediBid(formData: FormData) {
   if (!request) return { error: '요청을 찾을 수 없거나 이미 마감되었습니다.' }
 
   // 자기 요청 입찰 방지
-  if (request.user_id === user.id) return { error: '본인이 등록한 요청에는 입찰할 수 없습니다.' }
+  if (request.researcher_id === user.id) return { error: '본인이 등록한 요청에는 입찰할 수 없습니다.' }
 
   // 중복 입찰 방지
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +94,41 @@ export async function createMediBid(formData: FormData) {
     )
   }
 
+  // 의원에게 새 입찰 알림 (fire-and-forget)
+  notifyNewMediBid(request.researcher_id, request.title, supplier.company_name).catch(console.error)
+
   redirect('/medi-supplier/bids')
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 의원 알림: 새 입찰 도착
+// ─────────────────────────────────────────────────────────────────────────────
+async function notifyNewMediBid(clinicUserId: string, requestTitle: string, supplierName: string) {
+  const admin = createAdminClient()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: { user: clinic } } = await (admin as any).auth.admin.getUserById(clinicUserId)
+  const email: string | undefined = clinic?.email
+  if (!email) return
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: email,
+    subject: `[BidVibe Medi] 새 견적이 도착했습니다 — "${requestTitle}"`,
+    html: `
+      <div style="font-family:-apple-system,sans-serif;max-width:480px;margin:0 auto;padding:32px;color:#1A2236;">
+        <h2 style="color:#1E2F52;margin-bottom:8px;">새 견적이 도착했습니다</h2>
+        <p style="font-size:14px;"><strong>${supplierName}</strong>이(가) <strong>"${requestTitle}"</strong>에 견적을 제출했습니다.</p>
+        <p style="color:#6b7280;font-size:13px;">마감일까지 입찰을 더 받을 수 있습니다. 대시보드에서 확인하세요.</p>
+        <a href="https://ai-traffic.kr/clinic/requests"
+           style="display:inline-block;background:#14b8a6;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:16px;">
+          내 요청 확인하기 →
+        </a>
+        <p style="font-size:11px;color:#9ca3af;margin-top:20px;">
+          BidVibe Medi · 에스테틱 의료기기 소모품 견적 플랫폼 (ai-traffic.kr)
+        </p>
+      </div>
+    `,
+  })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
