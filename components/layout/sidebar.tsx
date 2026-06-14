@@ -63,8 +63,15 @@ const clinicNav = [
   { href: '/clinic/settings', key: 'sb.settings', icon: Settings },
 ]
 
+const mediSupplierNav = [
+  { href: '/medi-supplier', key: 'sb.medi.dashboard', icon: LayoutDashboard },
+  { href: '/medi-supplier/marketplace', key: 'sb.medi.marketplace', icon: Store },
+  { href: '/medi-supplier/bids', key: 'sb.medi.myBids', icon: ClipboardList },
+  { href: '/medi-supplier/settings', key: 'sb.settings', icon: Settings },
+]
+
 interface SidebarProps {
-  role: 'researcher' | 'supplier' | 'clinic'
+  role: 'researcher' | 'supplier' | 'clinic' | 'medi-supplier'
   credits?: number
 }
 
@@ -72,7 +79,12 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const t = useT()
-  const navItems = role === 'researcher' ? researcherNav : role === 'clinic' ? clinicNav : supplierNav
+  const isMediRole = role === 'clinic' || role === 'medi-supplier'
+  const navItems =
+    role === 'researcher' ? researcherNav
+    : role === 'clinic' ? clinicNav
+    : role === 'medi-supplier' ? mediSupplierNav
+    : supplierNav
   const [mobileOpen, setMobileOpen] = useState(false)
   const [pendingHref, setPendingHref] = useState<string | null>(null)
 
@@ -86,7 +98,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
     router.push('/login')
   }
 
-  const creditsHref = role === 'clinic' ? '/medi' : `/${role}/credits`
+  const creditsHref = isMediRole ? '/medi' : `/${role}/credits`
 
   const sidebarContent = (
     <>
@@ -107,10 +119,10 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         <ul className="space-y-1">
           {navItems.map(({ href, key, icon: Icon }) => {
             const label = t(key)
-            const isActive =
-              href === `/${role}` || href === `/${role}/ads/new`
-                ? pathname === href
-                : pathname.startsWith(href)
+            const rootHrefs = [`/${role}`, '/clinic', '/medi-supplier', `/${role}/ads/new`]
+            const isActive = rootHrefs.includes(href)
+              ? pathname === href
+              : pathname.startsWith(href)
             const isPending = pendingHref === href && !isActive
             return (
               <li key={href}>
@@ -140,7 +152,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
       </nav>
 
       <div className="border-t border-border p-3 space-y-2">
-        {role === 'clinic' ? (
+        {isMediRole ? (
           <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2.5">
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100">
@@ -188,7 +200,12 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         )}
 
         <div className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-          <span>{role === 'researcher' ? t('sb.researcherAccount') : role === 'clinic' ? t('sb.medi.clinicAccount') : t('sb.supplierAccount')}</span>
+          <span>
+            {role === 'researcher' ? t('sb.researcherAccount')
+              : role === 'clinic' ? t('sb.medi.clinicAccount')
+              : role === 'medi-supplier' ? t('sb.medi.supplierAccount')
+              : t('sb.supplierAccount')}
+          </span>
           <LanguageToggle variant="inline" />
         </div>
         <button

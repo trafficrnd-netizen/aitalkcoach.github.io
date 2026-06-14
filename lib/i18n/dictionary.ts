@@ -836,6 +836,46 @@ export const dictionary: Record<Lang, Dict> = {
     'sb.medi.freePlan': '전액 무료 플랜',
     'sb.medi.freeHint': '요청·입찰·비교 모두 무료',
     'sb.medi.clinicAccount': '의원 계정',
+    'sb.medi.supplierAccount': '에스테틱 공급사 계정',
+    'sb.medi.marketplace': '입찰광장',
+    'sb.medi.myBids': '내 입찰',
+    // ── medi 공급사 대시보드 ──
+    'medi.supplier.dashTitle': '에스테틱 공급사 대시보드',
+    'medi.supplier.dashSub': '인증 의원의 소모품 견적 요청에 무료로 입찰하세요.',
+    'medi.supplier.freeBadge': '전액 무료 — 입찰·비교·거래 모두 무료',
+    'medi.supplier.statOpenReqs': '열린 요청',
+    'medi.supplier.statMyBids': '내 입찰',
+    'medi.supplier.statAccepted': '수락됨',
+    'medi.supplier.ctaMarketplace': '입찰광장 보기',
+    'medi.supplier.ctaBids': '내 입찰 현황',
+    // ── 마켓플레이스 ──
+    'medi.supplier.mktTitle': '에스테틱 입찰광장',
+    'medi.supplier.mktSub': '의원이 등록한 소모품 요청에 견적을 제출하세요. 전액 무료.',
+    'medi.supplier.mktCount': '열린 요청 {n}건',
+    'medi.supplier.mktEmpty': '현재 열린 요청이 없습니다. 잠시 후 다시 확인해주세요.',
+    'medi.supplier.bidCta': '견적 제출',
+    'medi.supplier.bidView': '내 입찰 보기',
+    'medi.supplier.bidDone': '입찰 완료',
+    'medi.supplier.backToMarket': '입찰광장으로',
+    // ── 내 입찰 ──
+    'medi.supplier.bidsTitle': '내 입찰 현황',
+    'medi.supplier.bidsSub': '제출한 견적과 수락 현황을 확인하세요.',
+    'medi.supplier.bidsEmpty': '아직 입찰한 요청이 없습니다.',
+    // ── 입찰 폼 ──
+    'medi.bid.formTitle': '견적 제출',
+    'medi.bid.totalPrice': '총 견적 금액',
+    'medi.bid.won': '원',
+    'medi.bid.totalPriceHint': 'VAT 포함 총액을 입력해주세요.',
+    'medi.bid.deliveryDate': '납기 예정일',
+    'medi.bid.memo': '메모 (선택)',
+    'medi.bid.memoPh': '브랜드, 규격, 협의 가능 사항 등',
+    'medi.bid.freeBadge': '무료 입찰 — 수수료·토큰 없음',
+    'medi.bid.submit': '견적 제출',
+    'medi.bid.alreadyBid': '이미 입찰하셨습니다.',
+    'medi.bid.alreadyBidHint': '입찰은 요청당 1회만 가능합니다.',
+    'medi.bid.closed': '이 요청은 마감되었습니다.',
+    // ── 설정 ──
+    'medi.supplier.settingsComingSoon': '설정 페이지 준비 중입니다.',
     'medi.brand': 'BidVibe Medi',
     'medi.tagline': '미용·에스테틱 소모품, 비공개 최저가로',
     'medi.free.badge': '전액 무료',
@@ -1935,7 +1975,6 @@ export const dictionary: Record<Lang, Dict> = {
     'medi.cert.badge.verified': 'Verified',
     'medi.cert.badge.rejected': 'Rejected',
 
-
     // ── BidVibe Medi 요청 폼 ──
     'medi.req.title': 'Request a Quote',
     'medi.req.sub': 'Post your needs and certified suppliers will submit quotes.',
@@ -1965,6 +2004,46 @@ export const dictionary: Record<Lang, Dict> = {
     'sb.medi.freePlan': 'Fully free plan',
     'sb.medi.freeHint': 'Request, bid & compare — all free',
     'sb.medi.clinicAccount': 'Clinic account',
+    'sb.medi.supplierAccount': 'Aesthetic supplier account',
+    'sb.medi.marketplace': 'Marketplace',
+    'sb.medi.myBids': 'My bids',
+    // ── medi supplier dashboard ──
+    'medi.supplier.dashTitle': 'Aesthetic Supplier Dashboard',
+    'medi.supplier.dashSub': 'Bid on clinic supply requests — all free.',
+    'medi.supplier.freeBadge': 'Fully free — bid, compare & transact at no cost',
+    'medi.supplier.statOpenReqs': 'Open requests',
+    'medi.supplier.statMyBids': 'My bids',
+    'medi.supplier.statAccepted': 'Accepted',
+    'medi.supplier.ctaMarketplace': 'Browse marketplace',
+    'medi.supplier.ctaBids': 'My bid status',
+    // ── marketplace ──
+    'medi.supplier.mktTitle': 'Aesthetic Marketplace',
+    'medi.supplier.mktSub': 'Submit quotes on clinic supply requests. Free.',
+    'medi.supplier.mktCount': '{n} open requests',
+    'medi.supplier.mktEmpty': 'No open requests right now. Check back soon.',
+    'medi.supplier.bidCta': 'Submit quote',
+    'medi.supplier.bidView': 'View my bid',
+    'medi.supplier.bidDone': 'Bid submitted',
+    'medi.supplier.backToMarket': 'Back to marketplace',
+    // ── my bids ──
+    'medi.supplier.bidsTitle': 'My Bids',
+    'medi.supplier.bidsSub': 'Track your submitted quotes and acceptance status.',
+    'medi.supplier.bidsEmpty': 'No bids submitted yet.',
+    // ── bid form ──
+    'medi.bid.formTitle': 'Submit Quote',
+    'medi.bid.totalPrice': 'Total quote amount',
+    'medi.bid.won': 'KRW',
+    'medi.bid.totalPriceHint': 'Enter the VAT-inclusive total.',
+    'medi.bid.deliveryDate': 'Expected delivery date',
+    'medi.bid.memo': 'Memo (optional)',
+    'medi.bid.memoPh': 'Brand, specs, negotiable terms, etc.',
+    'medi.bid.freeBadge': 'Free bidding — no commission or tokens',
+    'medi.bid.submit': 'Submit quote',
+    'medi.bid.alreadyBid': 'You have already submitted a bid.',
+    'medi.bid.alreadyBidHint': 'One bid per request is allowed.',
+    'medi.bid.closed': 'This request is no longer open.',
+    // ── settings ──
+    'medi.supplier.settingsComingSoon': 'Settings page coming soon.',
     // Regulation Checklist
     'reg.verifyFull':     'Online verifiable',
     'reg.verifyPartial':  'Partial lookup',
@@ -1984,3 +2063,4 @@ export const dictionary: Record<Lang, Dict> = {
 export function translate(lang: Lang, key: string): string {
   return dictionary[lang]?.[key] ?? dictionary.ko[key]
 }
+
