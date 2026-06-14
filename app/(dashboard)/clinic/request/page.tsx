@@ -145,7 +145,12 @@ export default function MediRequestPage() {
           <ProductSearch
             value={form.productName}
             onChange={v => set('productName', v)}
-            onSelect={r => { set('productName', r.label); set('productCode', r.code); set('productType', r.type) }}
+            onSelect={r => {
+                set('productName', r.label)
+                set('productCode', r.code)
+                set('productType', r.type)
+                if (r.unit) set('unit', r.unit)
+              }}
             placeholder={t('medi.req.productNamePh')}
           />
         </div>
