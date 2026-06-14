@@ -42,7 +42,7 @@ export async function searchAestheticAds(params: {
   if (error || !data) return []
 
   // med_device 인증(verified) 공급사 집합 → 배지
-  const supplierIds = [...new Set(data.map((d: any) => d.supplier_id))]
+  const supplierIds = Array.from(new Set<string>(data.map((d: any) => d.supplier_id)))
   let verifiedSet = new Set<string>()
   if (supplierIds.length > 0) {
     const admin = createAdminClient()
