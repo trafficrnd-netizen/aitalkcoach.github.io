@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { SubmitButton } from '@/components/ui/submit-button'
 import { Badge } from '@/components/ui/badge'
 import { acceptMediBid } from '@/lib/actions/medi-accept'
+import { NegotiationSection } from '@/components/medi/negotiation-section'
 import { LinkPreview } from '@/components/medi/link-preview'
 import { getServerT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
@@ -49,7 +50,7 @@ export default async function ClinicRequestDetailPage({
   // 요청 조회 (의원 소유 + aesthetic)
   const { data: request } = await (supabase as any)
     .from('requests')
-    .select('id, title, deadline, delivery_city, notes, item_type, item_specs, status, created_at, vertical')
+    .select('id, title, deadline, delivery_city, notes, item_type, item_specs, status, created_at, vertical, allow_negotiation')
     .eq('id', params.id)
     .eq('researcher_id', user.id)
     .eq('vertical', 'aesthetic')
@@ -133,6 +134,21 @@ export default async function ClinicRequestDetailPage({
     : null
   const itemLabel = ITEM_TYPE_LABELS[request.item_type ?? ''] ?? ''
   const acceptedBid = bids.find((b: any) => b.status === 'accepted')
+
+  // 흥정 가능 여부: allow_negotiation=true + 수락 후 12시간 이내
+  const canNegotiate = request.allow_negotiation && acceptedBid &&
+    (Date.now() - new Date(acceptedBid.created_at ?? Date.now()).getTime() < 12 * 60 * 60 * 1000)
+
+  // 기존 흥정 내역 조회
+  let negotiation: { status: string; competitor_url: string | null; competitor_price: number | null; message: string | null } | null = null
+  if (acceptedBid) {
+    const { data: neg } = await (supabase as any)
+      .from('negotiations')
+      .select('status, competitor_url, competitor_price, message')
+      .eq('bid_id', acceptedBid.id)
+      .maybeSingle()
+    negotiation = neg ?? null
+  }
 
   return (
     <div className="max-w-2xl">
@@ -305,6 +321,17 @@ export default async function ClinicRequestDetailPage({
             })}
           </div>
         )}
+
+      {/* ── 흥정 섹션 ── */}
+      {isClosed && request.allow_negotiation && acceptedBid && (
+        <NegotiationSection
+          requestId={request.id}
+          bidId={acceptedBid.id}
+          canNegotiate={!!canNegotiate}
+          negotiation={negotiation}
+        />
+      )}
+
       </div>
     </div>
   )

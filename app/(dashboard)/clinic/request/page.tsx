@@ -10,7 +10,7 @@ import { LinkPreview } from '@/components/medi/link-preview'
 import { createMediRequest } from '@/lib/actions/medi-request'
 import { useT } from '@/lib/i18n/context'
 import { cn } from '@/lib/utils'
-import { Clock, CalendarClock, Sparkles, ArrowRight, ArrowLeft, Gift, Link as LinkIcon } from 'lucide-react'
+import { Clock, CalendarClock, Sparkles, ArrowRight, ArrowLeft, Gift, Link as LinkIcon, Handshake } from 'lucide-react'
 import {
   AESTHETIC_TYPES,
   AESTHETIC_TYPE_LABELS,
@@ -34,6 +34,7 @@ interface FormState {
   notes: string
   bidMode: BidMode
   productUrl: string
+  allowNegotiation: boolean
 }
 
 const EMPTY: FormState = {
@@ -47,6 +48,7 @@ const EMPTY: FormState = {
   notes: '',
   bidMode: 'open',
   productUrl: '',
+  allowNegotiation: false,
 }
 
 export default function MediRequestPage() {
@@ -59,7 +61,6 @@ export default function MediRequestPage() {
   const [previewUrl, setPreviewUrl] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // URL 입력 디바운스: 800ms 후 미리보기 업데이트
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
@@ -70,7 +71,7 @@ export default function MediRequestPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlInput])
 
-  function set(k: keyof FormState, v: string) {
+  function set<K extends keyof FormState>(k: K, v: FormState[K]) {
     setForm(prev => ({ ...prev, [k]: v }))
   }
 
@@ -97,6 +98,7 @@ export default function MediRequestPage() {
     fd.set('notes', form.notes)
     fd.set('bidMode', form.bidMode)
     fd.set('productUrl', form.productUrl)
+    fd.set('allowNegotiation', String(form.allowNegotiation))
     const result = await createMediRequest(fd)
     if (result?.error) {
       setError(result.error)
@@ -134,6 +136,12 @@ export default function MediRequestPage() {
               <div className="flex-1 min-w-0">
                 <LinkPreview url={form.productUrl} readonly />
               </div>
+            </div>
+          )}
+          {form.allowNegotiation && (
+            <div className="flex items-center gap-2 pt-2 border-t border-border/50">
+              <Handshake className="h-4 w-4 text-amber-500" />
+              <span className="text-xs font-semibold text-amber-700">흥정 허용 옵션 적용됨</span>
             </div>
           )}
         </div>
@@ -203,7 +211,6 @@ export default function MediRequestPage() {
             ))}
           </div>
 
-          {/* 하위 카테고리 (제품 미선택 시) */}
           {!form.productCode && (
             <div className="flex gap-1.5 flex-wrap mt-2 pt-2 border-t border-border/50">
               {AESTHETIC_TREE[form.productType].map(node => (
@@ -275,7 +282,7 @@ export default function MediRequestPage() {
           </div>
         </div>
 
-        {/* 납기 희망일 (마감 방식일 때만) */}
+        {/* 납기 희망일 */}
         {form.bidMode === 'deadline' && (
           <div className="space-y-1.5">
             <Label htmlFor="deadline">{t('medi.req.deadline')}</Label>
@@ -332,6 +339,36 @@ export default function MediRequestPage() {
             rows={3}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
+        </div>
+
+        {/* ── 흥정 허용 옵션 ── */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => set('allowNegotiation', !form.allowNegotiation)}
+          onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && set('allowNegotiation', !form.allowNegotiation)}
+          className={cn(
+            'flex items-start gap-3 rounded-xl border p-4 cursor-pointer transition-colors select-none',
+            form.allowNegotiation
+              ? 'border-amber-400 bg-amber-50'
+              : 'border-border hover:border-amber-300'
+          )}
+        >
+          <div className={cn(
+            'mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors',
+            form.allowNegotiation ? 'border-amber-500 bg-amber-500' : 'border-muted-foreground'
+          )}>
+            {form.allowNegotiation && <span className="text-white text-xs font-bold">✓</span>}
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 text-sm font-semibold">
+              <Handshake className="h-4 w-4 text-amber-500" />
+              흥정 허용
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              입찰 수락 후 12시간 내에 경쟁사 가격 정보를 제시하여 추가 할인을 요청할 수 있습니다.
+            </p>
+          </div>
         </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}

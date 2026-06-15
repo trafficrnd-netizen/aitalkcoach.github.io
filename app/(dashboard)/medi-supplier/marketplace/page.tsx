@@ -1,15 +1,19 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { Store, CheckCircle2, Clock, MapPin } from 'lucide-react'
+import { Store, CheckCircle2, Clock, MapPin, Handshake } from 'lucide-react'
 import { buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { getServerT } from '@/lib/i18n/server'
 
 const ITEM_TYPE_LABELS: Record<string, string> = {
-  device: '미용기기 소모품',
-  supply: '시술 부자재',
-  cosmetic: '관리실 화장품',
+  device:  '기기소모품',
+  hygiene: '위생/일회용',
+  pack:    '팩/마스크',
+  care:    '클렌징/케어',
+  tool:    '시술도구',
+  bed:     '베드/침대보호',
+  textile: '타월/가운',
 }
 
 export default async function MediMarketplacePage() {
@@ -21,13 +25,12 @@ export default async function MediMarketplacePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: requests } = await (supabase as any)
     .from('requests')
-    .select('id, title, deadline, delivery_city, notes, created_at, item_type')
+    .select('id, title, deadline, delivery_city, notes, created_at, item_type, allow_negotiation')
     .eq('status', 'open')
     .eq('vertical', 'aesthetic')
     .order('created_at', { ascending: false })
     .limit(60)
 
-  // 내가 이미 입찰한 요청 ID 셋
   const reqIds: string[] = (requests ?? []).map((r: { id: string }) => r.id)
   const myBidSet = new Set<string>()
   if (reqIds.length) {
@@ -72,6 +75,7 @@ export default async function MediMarketplacePage() {
             notes: string | null
             created_at: string
             item_type: string | null
+            allow_negotiation: boolean | null
           }) => {
             const alreadyBid = myBidSet.has(req.id)
             const daysLeft = req.deadline
@@ -86,6 +90,11 @@ export default async function MediMarketplacePage() {
                     <div className="flex flex-wrap items-center gap-1.5 mb-1">
                       {itemLabel && (
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{itemLabel}</Badge>
+                      )}
+                      {req.allow_negotiation && (
+                        <Badge className="bg-amber-100 text-amber-700 text-[10px] px-1.5 py-0 gap-1 border-0">
+                          <Handshake className="h-2.5 w-2.5" /> 흥정 가능
+                        </Badge>
                       )}
                       {alreadyBid && (
                         <Badge className="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0 gap-1 border-0">

@@ -839,6 +839,10 @@ export const dictionary: Record<Lang, Dict> = {
     'sb.medi.supplierAccount': '공급사',
     'sb.medi.marketplace': '입찰광장',
     'sb.medi.myBids': '내 입찰',
+    'sb.medi.negotiations': '흥정 관리',
+    'sb.medi.adBoard': '광고게시판',
+    'sb.medi.adManage': '광고 관리',
+    'sb.medi.groupBuy': '그룹바이',
     // ── medi 공급사 대시보드 ──
     'medi.supplier.dashTitle': '에스테틱 공급사 대시보드',
     'medi.supplier.dashSub': '인증 의원의 소모품 견적 요청에 무료로 입찰하세요.',
@@ -2022,6 +2026,10 @@ export const dictionary: Record<Lang, Dict> = {
     'sb.medi.supplierAccount': 'Supplier',
     'sb.medi.marketplace': 'Marketplace',
     'sb.medi.myBids': 'My bids',
+    'sb.medi.negotiations': 'Negotiations',
+    'sb.medi.adBoard': 'Ad board',
+    'sb.medi.adManage': 'Manage ads',
+    'sb.medi.groupBuy': 'Group buy',
     // ── medi supplier dashboard ──
     'medi.supplier.dashTitle': 'Aesthetic Supplier Dashboard',
     'medi.supplier.dashSub': 'Bid on clinic supply requests — all free.',
@@ -2085,11 +2093,10 @@ export const dictionary: Record<Lang, Dict> = {
     'reg.uploadAccept':   'PDF or image (max 10 MB)',
     'reg.uploadedOk':     '✓ File selected',
     'reg.complianceTitle': 'Regulation Compliance Check',
-    'reg.complianceDesc':  'Review the regulations for your country and supply type. Check all [Required] items.',
+    'reg.complianceDesc':  'Please review the regulations for your selected country and supply type, and check all [Required] items.',
   },
 }
 
-/** 키 해석 (en → ko 폴백) */
 export function translate(lang: Lang, key: string): string {
-  return dictionary[lang]?.[key] ?? dictionary.ko[key]
+  return dictionary[lang]?.[key] ?? dictionary['ko']?.[key] ?? key
 }

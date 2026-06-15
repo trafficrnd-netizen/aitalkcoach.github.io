@@ -13,22 +13,22 @@ export async function createMediRequest(formData: FormData) {
     return { error: '로그인이 필요합니다.' }
   }
 
-  const productName  = (formData.get('productName') as string)?.trim()
-  const productCode  = (formData.get('productCode') as string) || null
-  const productType  = (formData.get('productType') as string) || null
-  const qty          = Number(formData.get('qty'))
-  const unit         = (formData.get('unit') as string) || 'ea'
-  const deadline     = (formData.get('deadline') as string) || null
-  const deliveryCity = (formData.get('deliveryCity') as string)?.trim() || null
-  const notes        = (formData.get('notes') as string) || null
-  const bidMode      = (formData.get('bidMode') as string) || 'open'
-  const productUrl   = (formData.get('productUrl') as string)?.trim() || null
+  const productName        = (formData.get('productName') as string)?.trim()
+  const productCode        = (formData.get('productCode') as string) || null
+  const productType        = (formData.get('productType') as string) || null
+  const qty                = Number(formData.get('qty'))
+  const unit               = (formData.get('unit') as string) || 'ea'
+  const deadline           = (formData.get('deadline') as string) || null
+  const deliveryCity       = (formData.get('deliveryCity') as string)?.trim() || null
+  const notes              = (formData.get('notes') as string) || null
+  const bidMode            = (formData.get('bidMode') as string) || 'open'
+  const productUrl         = (formData.get('productUrl') as string)?.trim() || null
+  const allowNegotiation   = formData.get('allowNegotiation') === 'true'
 
   if (!productName) return { error: '제품명은 필수입니다.' }
   if (!qty || qty <= 0) return { error: '수량을 입력해주세요.' }
   if (!deliveryCity) return { error: '배송 도시명은 필수입니다.' }
 
-  // 무료 버티컬 — 크레딧/구독 체크 완전 우회 (isFree(VERTICAL) === true)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as any
 
@@ -49,6 +49,7 @@ export async function createMediRequest(formData: FormData) {
       },
       delivery_city: deliveryCity,
       vertical: VERTICAL,
+      allow_negotiation: allowNegotiation,
     })
     .select('id')
     .single()
@@ -63,7 +64,8 @@ export async function createMediRequest(formData: FormData) {
     .insert({
       request_id: request.id,
       substance_name: productName,
-      qty,      unit,
+      qty,
+      unit,
     })
 
   if (itemError) {

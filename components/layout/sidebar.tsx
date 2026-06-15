@@ -60,6 +60,8 @@ const clinicNav = [
   { href: '/clinic', key: 'sb.medi.dashboard', icon: LayoutDashboard },
   { href: '/clinic/request', key: 'sb.medi.request', icon: FlaskConical },
   { href: '/clinic/requests', key: 'sb.medi.myRequests', icon: FileText },
+  { href: '/clinic/group-buy', key: 'sb.medi.groupBuy', icon: Users },
+  { href: '/clinic/board', key: 'sb.medi.adBoard', icon: Megaphone },
   { href: '/clinic/settings', key: 'sb.settings', icon: Settings },
 ]
 
@@ -67,6 +69,8 @@ const mediSupplierNav = [
   { href: '/medi-supplier', key: 'sb.medi.dashboard', icon: LayoutDashboard },
   { href: '/medi-supplier/marketplace', key: 'sb.medi.marketplace', icon: Store },
   { href: '/medi-supplier/bids', key: 'sb.medi.myBids', icon: ClipboardList },
+  { href: '/medi-supplier/negotiations', key: 'sb.medi.negotiations', icon: ClipboardList },
+  { href: '/medi-supplier/board', key: 'sb.medi.adManage', icon: Megaphone },
   { href: '/medi-supplier/settings', key: 'sb.settings', icon: Settings },
 ]
 
@@ -98,7 +102,9 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
     router.push(isMediRole ? '/medi/login' : '/login')
   }
 
-  const creditsHref = isMediRole ? '/medi' : `/${role}/credits`
+  const creditsHref = role === 'clinic' ? '/clinic/credits'
+    : role === 'medi-supplier' ? '/medi-supplier'
+    : `/${role}/credits`
 
   const sidebarContent = (
     <>
@@ -153,17 +159,38 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
 
       <div className="border-t border-border p-3 space-y-2">
         {isMediRole ? (
-          <div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2.5">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-100">
-                <Gift className="h-4 w-4 text-emerald-600" />
-              </span>
-              <div>
-                <p className="text-[11px] leading-tight text-emerald-700 font-semibold">{t('sb.medi.freePlan')}</p>
-                <p className="text-[10px] leading-tight text-emerald-600">{t('sb.medi.freeHint')}</p>
+          <Link
+            href={creditsHref}
+            onClick={() => setPendingHref(creditsHref)}
+            className={cn(
+              'block rounded-lg border p-3 transition-colors',
+              pathname.startsWith(creditsHref)
+                ? 'border-primary/40 bg-primary/10'
+                : 'border-primary/20 bg-primary/5 hover:bg-primary/10'
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                  <Coins className="h-4 w-4 text-primary" />
+                </span>
+                <div>
+                  <p className="text-[11px] leading-tight text-muted-foreground">포인트</p>
+                  <p className="text-sm font-bold leading-tight text-foreground">
+                    {credits.toLocaleString()} P
+                  </p>
+                </div>
               </div>
+              {pendingHref === creditsHref ? (
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
             </div>
-          </div>
+            <p className="mt-1 text-[10px] text-emerald-600 font-medium flex items-center gap-1">
+              <Gift className="h-3 w-3" /> 프로모션 기간 무료
+            </p>
+          </Link>
         ) : (
           <Link
             href={creditsHref}

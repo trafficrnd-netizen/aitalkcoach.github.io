@@ -12,11 +12,12 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 const BASE_URL = 'https://ai-traffic.kr'
 
 const TITLE_KO = 'BidVibe — 연구자·공급사 역경매 견적 플랫폼 | 수수료 0원'
-const TITLE_BILINGUAL = 'BidVibe — 요청하면 견적이 다~ 온다 | 수수료 없는 역경매 매칭'
 const DESC_BILINGUAL =
   '요청하면 견적이 다~ 온다. 수수료 없는 연구자·공급사 비공개 역경매 플랫폼. Commission-free sealed-bid platform for lab procurement.'
 
-const OG_IMAGE = '/og-image.png'
+const OG_DESC = '연구자·공급자 프라이빗 매칭 채널'
+const OG_TITLE = 'BidVibe — 연구자·공급자 프라이빗 매칭 채널'
+const OG_IMAGE = '/og-image.png?v=2'
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
@@ -43,15 +44,15 @@ export const metadata: Metadata = {
     locale: 'ko_KR',
     alternateLocale: ['en_US'],
     url: BASE_URL,
-    title: TITLE_BILINGUAL,
-    description: DESC_BILINGUAL,
+    title: OG_TITLE,
+    description: OG_DESC,
     siteName: 'BidVibe',
-    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: '요청하면 견적이 다~ 온다 — BidVibe' }],
+    images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: OG_DESC }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: TITLE_BILINGUAL,
-    description: DESC_BILINGUAL,
+    title: OG_TITLE,
+    description: OG_DESC,
     images: [OG_IMAGE],
   },
   robots: {
