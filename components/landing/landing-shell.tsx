@@ -6,6 +6,7 @@
  */
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { UtmTracker } from './utm-tracker'
 
 export interface LandingShellProps {
@@ -47,8 +48,8 @@ export function LandingShell(props: LandingShellProps) {
       {/* Top bar */}
       <header className="sticky top-0 z-50 backdrop-blur bg-background/85 border-b border-border/60">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-extrabold text-primary tracking-tight">
-            BidVibe
+          <Link href="/" className="flex items-center">
+            <Image src="/BidVibe_logo.png" alt="BidVibe" width={350} height={80} className="h-20 w-auto" />
           </Link>
           <nav className="flex gap-2 items-center text-sm">
             <Link href="/login" className="px-4 py-2 text-foreground/70 hover:text-foreground">
@@ -160,6 +161,9 @@ export function LandingShell(props: LandingShellProps) {
       {/* Final CTA */}
       <section className="px-5 py-16 sm:px-6 sm:py-24 bg-primary text-primary-foreground">
         <div className="max-w-3xl mx-auto text-center">
+          <div className="mb-6">
+            <Image src="/BidVibe_logo.png" alt="BidVibe" width={500} height={114} className="h-[114px] w-auto mx-auto" priority />
+          </div>
           <h2 className="text-2xl sm:text-4xl font-extrabold mb-4 sm:mb-5 whitespace-pre-line [word-break:keep-all]">
             {props.finalCtaTitle}
           </h2>

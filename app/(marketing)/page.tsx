@@ -91,7 +91,7 @@ export default function LandingPage() {
         <div className="container px-5 pt-8 sm:pt-10">
           <div className="flex flex-col items-center gap-3 mb-12">
             <div className="flex items-center justify-center gap-2">
-              <img src="/BidVibe_logo1.svg" alt="BidVibe" className="h-8 w-auto" />
+              <img src="/BidVibe_logo.png" alt="BidVibe" className="h-8 w-auto" />
               <span className="text-2xl sm:text-3xl font-bold">{t('land.featOf')}</span>
             </div>
             <p className="text-center text-muted-foreground">{t('land.featSub')}</p>
