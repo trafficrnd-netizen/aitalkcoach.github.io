@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Megaphone, Phone, Tag, MapPin, ExternalLink } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Megaphone, Phone, Tag, MapPin } from 'lucide-react'
 
 const AESTHETIC_CATS = [
   '레이저/HIFU 카트리지', '미용기기 소모품', '모델링팩', '시트마스크',

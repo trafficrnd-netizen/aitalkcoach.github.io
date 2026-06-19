@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Coins, Gift, CheckCircle2, UserPlus, Star, ClipboardList } from 'lucide-react'
+import { Coins, Gift } from 'lucide-react'
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const _RULE_ICONS: Record<string, React.ReactNode> = {}
