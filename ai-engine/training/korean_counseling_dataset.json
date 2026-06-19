@@ -1,0 +1,778 @@
+[
+  {
+    "id": "train_001",
+    "category": "emotion_analysis",
+    "conversation": "나: 안녕 오늘 뭐 해?\n상대방: 안녕~ 그냥 집에서 쉬고 있어 ㅎㅎ\n나: 나 오늘 일 끝났어. 술 한 잔 할까?\n상대방: 좋은데? 어디 가자\n나: 그럼 네 집 앞 편의점으로 7시에?\n상대방: 응 좋아!",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "긍정적",
+      "emotion_score": 9,
+      "emotion_emoji": "😊",
+      "description": "전체적으로 밝고 즐거운 분위기입니다. 상대방이 만남에 적극적이고 이모티콘을 사용하며 바로 동의하는 긍정적 반응을 보입니다.",
+      "emotion_changes": [
+        {
+          "point": "술 한 잔 제안을 받았을 때",
+          "from": "평온",
+          "to": "기쁨/수용"
+        }
+      ]
+    },
+    "explanation": "상대방이 만남에 적극적이고 바로 동의하며 긍정적 신호를 보내고 있습니다."
+  },
+  {
+    "id": "train_002",
+    "category": "emotion_analysis",
+    "conversation": "나: 오늘 데이트 어때?\n상대방: 괜찮았어\n나: 뭐 하고 싶어?\n상대방: 글쎄 뭐라나\n나: 우리 영화 볼까?\n상대방: 응",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "중립적",
+      "emotion_score": 5,
+      "emotion_emoji": "😐",
+      "description": "대화가平淡하고 상대방이消極적으로 반응하고 있습니다. 짧은 답변이 많고 주도적인 참여가 부족합니다.",
+      "emotion_changes": []
+    },
+    "explanation": "상대방의 답변이 짧고消극적입니다. 자신의사를 잘 표현하지 않고男方에 의존하고 있습니다."
+  },
+  {
+    "id": "train_003",
+    "category": "interest_analysis",
+    "conversation": "나: 안녕 뭐해?\n상대방: 일해 ㅠ\n나: 힘들어?\n상대방: 응 요즘 좀\n나: 놀아줘야 하나?\n상대방:ㅋㅋ 바빠서 못 나올 것 같아\n나: 그럼 다음에!\n상대방: 응",
+    "analysis_type": "interest",
+    "response": {
+      "interest_level": "보통",
+      "interest_score": 5,
+      "evidence": [
+        "일相关内容으로 대화 참여",
+        "솔직하게 바쁨을 표현"
+      ],
+      "missed_signals": [
+        "다음에 만날 구체적 날짜 조율 없음"
+      ],
+      "warning_signals": [
+        "장난기로 만나자고 했지만 구체적 동의 없음"
+      ],
+      "advice": "상대방이 정말 바쁜 상황일 수 있습니다. 2-3일 후 다시 만나자고 구체적인 제안(날짜/시간/장소)을 보내세요."
+    },
+    "explanation": "상대방이 솔직하게 바쁨을 표현하는 것은 편안한 신호일 수도 있지만, 구체적 다음 만남이 없으므로 주의가 필요합니다."
+  },
+  {
+    "id": "train_004",
+    "category": "interest_analysis",
+    "conversation": "나: 오늘 뭐 해?\n상대방: 같이 먹자!\n나: 뭐 먹고 싶어?\n상대방: 피자 어때?\n나: 좋아! 몇 시?\n상대방: 7시くらい는 돼?\n나: 응 7시에 갈게!\n상대방: 앗 나先约会했는데 8시는 돼?\n나: ㅋㅋ 괜찮아 8시에 보자\n상대방: ㅎㅎ 최고~ 다녀올게!",
+    "analysis_type": "interest",
+    "response": {
+      "interest_level": "높음",
+      "interest_score": 9,
+      "evidence": [
+        "먼저 만나자고 제안함",
+        "시간 조율에積極적配合",
+        "만나기 전에 기대감을 표현함",
+        "이모티콘으로 긍정적 감정 표현"
+      ],
+      "missed_signals": [],
+      "warning_signals": [],
+      "advice": "아주 좋은 신호입니다! 상대방이 먼저 만나자고 했고 시간도 맞춰주었습니다. 데이트 후 바로 다음 약속을 잡아보세요."
+    },
+    "explanation": "상대방이 먼저 만나자고 제안하고 시간도 맞춰주는 것은 강력한 관심 신호입니다."
+  },
+  {
+    "id": "train_005",
+    "category": "reply_suggestion",
+    "conversation": "나: 안녕 오늘 뭐 해?\n상대방: 안녕~ 나 오늘 일 끝났는데 뭐 같이 할까?",
+    "analysis_type": "replies",
+    "response": {
+      "last_message": "일 끝났는데 같이 할까?",
+      "suggestions": [
+        {
+          "reply": "오 좋았어! 뭐 하고 싶어?",
+          "tone": "친근함",
+          "pros": "즉시 긍정하고 선택권을 줌",
+          "cons": "조금 소극적",
+          "best_for": "상대방이 주도권을 원할 때"
+        },
+        {
+          "reply": "ㅋㅋ 나 오늘 일 끝났어! 피자 먹으러 갈까?",
+          "tone": "장난",
+          "pros": "나도 같은 상황임을 공유하고 구체적 제안",
+          "cons": "상대방 계획이 있을 수 있음",
+          "best_for": "가벼운 분위기일 때"
+        },
+        {
+          "reply": "응 좋아! 몇 시에 어디서 만날까?",
+          "tone": "진지",
+          "pros": "실제로 만남으로 이어질 가능성이 높음",
+          "cons": "조금 사무적",
+          "best_for": "진지하게 관계 발전을 원할 때"
+        }
+      ],
+      "avoid": ["응", "ㅇ", "글쎄", "몰라"]
+    },
+    "explanation": "상대방이 먼저 만나자고 한 것은 강력한 관심 신호입니다. 바로 수락하고 구체적인 계획을 세우세요."
+  },
+  {
+    "id": "train_006",
+    "category": "reply_suggestion",
+    "conversation": "나: 오늘 만나서 재밌었어~\n상대방: 응 나도 ㅎㅎ",
+    "analysis_type": "replies",
+    "response": {
+      "last_message": "나도 ㅎㅎ",
+      "suggestions": [
+        {
+          "reply": "다음엔 더 좋은 데 가자! 생각해둔 곳 있어",
+          "tone": "진지",
+          "pros": "다음 만남을 암시하고 주도적",
+          "cons": "약속으로 느껴질 수 있음",
+          "best_for": "관계를 발전시키고 싶을 때"
+        },
+        {
+          "reply": "ㅋㅋ 니 집 앞 편의점 분위기 좋았었는데 다음엔 거기서",
+          "tone": "장난",
+          "pros": "가볍고 친근함, 다음 만남 자연스럽게 암시",
+          "cons": "장소가 단순 반복",
+          "best_for": "가벼운 분위기 유지할 때"
+        },
+        {
+          "reply": "집 잘 들어갔어? 밤 늦어서 걱정돼서",
+          "tone": "관심",
+          "pros": "상대방을 걱정하는 모습, 배려심 표현",
+          "cons": "다음 약속 암시 없음",
+          "best_for": "상대방이疲れたそうだった 느낄 때"
+        }
+      ],
+      "avoid": ["그래", "응", "ㅇ"]
+    },
+    "explanation": "상대방이 짧게 답장했지만 '나도'라고 해서 관심이 있습니다. 다음 만남으로 자연스럽게 이어가는 것이 좋습니다."
+  },
+  {
+    "id": "train_007",
+    "category": "advice_analysis",
+    "conversation": "나: 안녕\n상대방: 안녕\n나: 뭐 해?\n상대방: tv 봐\n나: 뭐 봐?\n상대방: 그냥\n나:ㅋㅋ",
+    "analysis_type": "advice",
+    "response": {
+      "mistakes": [
+        {
+          "type": "연락 빈도가 낮음",
+          "example": "안녕 → tv 봐 → 그냥",
+          "why": "대화가 단순 질문-답변으로만 이루어져兴趣를 끌지 못함",
+          "improvement": "이벤트성 대화를 시도하세요 (오늘 힘들었어, 웃긴 거 봤어 등)"
+        }
+      ],
+      "habits": [
+        "질문만 연속으로 함",
+        "대화의 맥락을 활용하지 못함"
+      ],
+      "improvements": [
+        "자신의 이야기를 먼저 공유하기",
+        "흥미로운話題를 던지기",
+        "질문보다陈述 위주 대화"
+      ],
+      "strengths": [
+        "일상적인 연락을 유지하려는 노력"
+      ],
+      "summary": "대화가 너무干燥합니다. 자신의 이야기를 먼저 공유하고 흥미로운話題를 던져보세요."
+    },
+    "explanation": "대화가 질문-답변 반복으로 진행되어兴趣를 끌지 못하고 있습니다. 자신부터的故事를 공유해보세요."
+  },
+  {
+    "id": "train_008",
+    "category": "emotion_analysis",
+    "conversation": "나: 오늘 점심 뭐 먹었어?\n상대방: 김치찌개~ 맛있었어ㅎㅎ\n나: 대박 나 오늘 냉국 먹었는데...\n상대방: ㅋㅋ 여름엔 냉국이지\n나: 맞아 근데 내일부터 장사wart니까 점심시간 없어ㅠ\n상대방: 헐 그럼 굶어야 하는 건데ㅠㅠ\n나: ㅋㅋ 괜찮아 간식으로 버텀다\n상대방: 아니야 내일 내가 맛있는 거 사갈게\n나:ㅋㅋ 정marsh?\n상대방: ㅎㅎ",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "긍정적",
+      "emotion_score": 8,
+      "emotion_emoji": "🥰",
+      "description": "자연스럽고楽しい 대화입니다. 상대방이 사귀는 것에 관심을 표현하고 배려하는 모습을 보입니다.",
+      "emotion_changes": [
+        {
+          "point": "점심시간 없다고 했을 때",
+          "from": "걱정",
+          "to": "배려/사주겠다고 함"
+        }
+      ]
+    },
+    "explanation": "상대방이 상대방의 사정을 듣고 바로 먹여주겠다고 하는 것은 관계 발전을 암시하는 아주 좋은 신호입니다."
+  },
+  {
+    "id": "train_009",
+    "category": "interest_analysis",
+    "conversation": "나: 안녕~\n상대방: 안녕\n나: 뭐 해?\n상대방: 잠\n나: 아 그렇구나ㅎ 잘 자~\n상대방: 응\n나: 잘 자~ 내일 보자\n상대방: ㅇ",
+    "analysis_type": "interest",
+    "response": {
+      "interest_level": "낮음",
+      "interest_score": 2,
+      "evidence": [
+        "답장이 1단어로 짧음",
+        "상대방이 먼저 연락했지만 응답이消極적"
+      ],
+      "missed_signals": [
+        "내일 보자고 했지만 구체적 동의 없음"
+      ],
+      "warning_signals": [
+        "잠들기 전 시간에 짧게 답장은 의도적일 수 있음",
+        "일방적인 대화 흐름"
+      ],
+      "advice": "상대방이 잠들려고 하는 상황일 수 있습니다. 내일 낮에 다시 연락할 때 구체적인 약속(장소/시간)을 잡아보세요."
+    },
+    "explanation": "답장이 매우 짧고 일방적입니다. 잠들기 전이라서일 수 있지만, 내일 낮에 구체적인 약속을 잡아보세요."
+  },
+  {
+    "id": "train_010",
+    "category": "reply_suggestion",
+    "conversation": "상대방: 오늘 밤 9시에 만날까?",
+    "analysis_type": "replies",
+    "response": {
+      "last_message": "오늘 밤 9시에 만날까?",
+      "suggestions": [
+        {
+          "reply": "응 좋아! 어디서 볼까?",
+          "tone": "친근함",
+          "pros": "바로 동의하고 장소 조율 시작",
+          "cons": "장소 선택권을 넘김",
+          "best_for": "빠르게 만나고 싶을 때"
+        },
+        {
+          "reply": "ㅋㅋ 좋아! 근데 오늘 밤...? ㅎㅎ 어디 갈까?",
+          "tone": "장난",
+          "pros": "즉석에서 만나는 느낌,친근함",
+          "cons": "밤늦게까지 있을 수 있음",
+          "best_for": "자유로운 분위기일 때"
+        },
+        {
+          "reply": "응! 그 시간 괜찮아. 장소 정해줄게",
+          "tone": "진지",
+          "pros": "주도적이며 구체적인 계획 세움",
+          "cons": "약속 느낌이 강함",
+          "best_for": "진지하게 관계 발전 원할 때"
+        }
+      ],
+      "avoid": ["글쎄", "몰라", "잘 모르겠어"]
+    },
+    "explanation": "상대방이 먼저 만날 시간을 제안한 것은 강력한 관심 신호입니다. 바로 동의하고 주도적으로 장소를 정하세요."
+  },
+  {
+    "id": "train_011",
+    "category": "emotion_analysis",
+    "conversation": "나: 요즘 많이 힘들었지?\n상대방: 응... work가 너무 많아ㅠㅠ\n나:ㅠㅠ 그렇구나\n상대방: 근데 오늘 드디어 끝났어!\n나: 대박! 축하해🎉\n상대방: ㅎㅎ 오늘好不容易 끝났어\n나: 그럼 오늘 쉬면서 내일 뭐 할까?\n상대방: 내일 놀아줘야지ㅋㅋ",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "긍정적",
+      "emotion_score": 8,
+      "emotion_emoji": "😊",
+      "description": "일의 완료 후欣慰하고 다음 만남을 자연스럽게 제안하는 대화입니다. 상대방이疲れた후 회복된 상태입니다.",
+      "emotion_changes": [
+        {
+          "point": "일이 끝났다고 했을 때",
+          "from": "힘듦/스트레스",
+          "to": "기쁨/해방감"
+        }
+      ]
+    },
+    "explanation": "상대방이 힘든 일을 마치고 기뻐하며 놀러 다니자고 합니다. 바로 수락하고 구체적인 계획을 세우세요."
+  },
+  {
+    "id": "train_012",
+    "category": "advice_analysis",
+    "conversation": "나: 우리 오늘 영화 볼까?\n상대방: 음... 오늘은 좀\n나: 아 그렇구나ㅠ\n상대방: 내일은 안 바빠!\n나: 그럼 내일 보자!\n상대방: 응",
+    "analysis_type": "advice",
+    "response": {
+      "mistakes": [
+        {
+          "type": "대화의 연속성이 없음",
+          "example": "오늘 못 만날 때 → 바로 다음 날로 넘어감",
+          "why": "대화의 끝나지 않고 흐름이 끊김",
+          "improvement": "오늘 못 만나는 이유를 가볍게 물어보거나 共感을 표현해보세요"
+        }
+      ],
+      "habits": [
+        "대화의 여운이 없음"
+      ],
+      "improvements": [
+        "오늘 못 만나는 것에 대한 배려 표현 (많이 힘들었어?)",
+        "내일 만날 때 행동-plan을 더 구체적으로 이야기하기"
+      ],
+      "strengths": [
+        "거절에 잘顺応함",
+        "대안 제시를 빨리 함"
+      ],
+      "summary": "대화가 너무干脆利落합니다. 상대의 상황에 대한 배려를 조금 더 표현하면 좋습니다."
+    },
+    "explanation": "상대방이 거절하면 바로 다음으로 넘겼습니다. 상대의 상황에 대한 共感을 표현하면 더 좋은印象을 줄 수 있습니다."
+  },
+  {
+    "id": "train_013",
+    "category": "comprehensive_analysis",
+    "conversation": "나: 안녕~\n상대방: 안녕ㅎ\n나: 주말에 뭐 해?\n상대방: 뭐 안 해~ 그냥 쉬어\n나: 우리 놀러 가자!\n상대방:好啊~\n나: 어디 가고 싶어?\n상대방: 같이 가자\n나: 카페 어때?\n상대방: 좋아!",
+    "analysis_type": "comprehensive",
+    "response": {
+      "summary": {
+        "overview": "상대방이 주말에 약속이 없었고,男方의 놀이 제안에 바로 동의하는 대화입니다.",
+        "duration": "오늘",
+        "message_count": 7
+      },
+      "emotion": {
+        "overall": "긍정적",
+        "emoji": "😊",
+        "description": "상대방이 놀이에 관심이 있고男方을 만나고 싶어합니다."
+      },
+      "interest": {
+        "level": "높음",
+        "score": 8,
+        "evidence": [
+          "바로同意",
+          "장소 선택을男方에게 맡김",
+          "이모티콘 사용"
+        ]
+      },
+      "analysis": {
+        "my_mistakes": [],
+        "good_points": [
+          "먼저 놀이 제안함",
+          "장소를 구체적으로提案"
+        ],
+        "missed_signals": []
+      },
+      "suggestions": {
+        "best_replies": [
+          {
+            "reply": "그럼 토요일 2시에 동네 카페 가자! 거기 아이스티 맛있어",
+            "tone": "진지"
+          }
+        ],
+        "next_action": "토요일 2시, 동네 카페에서 만남을 확정하세요. 구체적인 시간을 정하면 이행 가능성이 높아집니다."
+      }
+    },
+    "explanation": "매우 긍정적인 대화입니다. 상대방이 놀이에 동의하고 장소 선택도男方에게 맡겼습니다. 구체적인 시간과 장소를 정하세요."
+  },
+  {
+    "id": "train_014",
+    "category": "interest_analysis",
+    "conversation": "나: 오늘 뭐 해?\n상대방: work 야\n나: 언제 끝나?\n상대방: 글쎄 10시쯤?\n나: 그때 연락해도 돼?\n상대방: 응\n나: 알겠어 그때 연락할게\n상대방: ㅇ",
+    "analysis_type": "interest",
+    "response": {
+      "interest_level": "보통",
+      "interest_score": 5,
+      "evidence": [
+        "끝나는 시간 알려줌",
+        "연락해도 된다고 허용함"
+      ],
+      "missed_signals": [
+        "능동적으로 만남을 제안하지 않음"
+      ],
+      "warning_signals": [
+        "답변이 짧고 정돈됨",
+        "일 이야기가中心"
+      ],
+      "advice": "상대방이 일 때문에制約가 있는 상태입니다. 10시에 연락할 때 바로 만나자고 하기보다는 가볍게 물어보세요. 만약断られたら 일 때문에 그런 거니까落胆하지 마세요."
+    },
+    "explanation": "상대방이 일에集中해야 하는 상황입니다. 10시에 연락할 때 가볍게 만나자고 해보세요."
+  },
+  {
+    "id": "train_015",
+    "category": "emotion_analysis",
+    "conversation": "나: 우리 最近 연락 잘 한다\n상대방:ㅋㅋ 응近来私 pico 다\n나: 나도ㅎㅎ\n상대방: 같이 있으면 더 잘할 텐데\n나:ㅋㅋ 그럼 자주 보자!\n상대방: 좋아~\n나: 이번 주말에 만날까?\n상대방:好啊~",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "긍정적",
+      "emotion_score": 9,
+      "emotion_emoji": "🥰",
+      "description": "서로 연락이 잘되고 만나고 싶다는 감정을相互적으로 표현하는 건강한 대화입니다.",
+      "emotion_changes": []
+    },
+    "explanation": "서로 만나고 싶다는 감정을 솔직하게 표현하고 있습니다. 이번 주말에 만남을 확정하세요."
+  },
+  {
+    "id": "train_016",
+    "category": "reply_suggestion",
+    "conversation": "나: 우리 最近 연락 잘 된다\n상대방: 맞아ㅎㅎ\n나: 너무좋아",
+    "analysis_type": "replies",
+    "response": {
+      "last_message": "너무좋아",
+      "suggestions": [
+        {
+          "reply": "그럼 이번 주말에 보자!",
+          "tone": "친근함",
+          "pros": "연락에서 만남으로 자연스럽게 이어감",
+          "cons": "상대방 일정에 대한 고려 없음",
+          "best_for": "만남을 빨리 잡고 싶을 때"
+        },
+        {
+          "reply": "같이 있으면 더 좋을 텐데ㅎㅎ",
+          "tone": "설득",
+          "pros": "상대방의感想에共鳴하며 만남 유도",
+          "cons": "상대방이 부담 느낄 수 있음",
+          "best_for": "관계가 어느 정도 진행됐을 때"
+        },
+        {
+          "reply": "ㅎㅎ 맞아~ 잘하고 있다 우리",
+          "tone": "친근",
+          "pros": "대화를 자연스럽게 이어감, 부담 없음",
+          "cons": "만남으로 이어지지 않을 수 있음",
+          "best_for": "서로를comfort하고 싶을 때"
+        }
+      ],
+      "avoid": ["응", "ㅇ", "ㅋㅋ"]
+    },
+    "explanation": "상대가 같이 있으면 좋겠다고 했으므로 만남으로 자연스럽게 이어가세요."
+  },
+  {
+    "id": "train_017",
+    "category": "emotion_analysis",
+    "conversation": "나: 어제 잘 잤어?\n상대방: 아니ㅠ 잠이 안 왔어\n나: 왜? 무슨 생각해?\n상대방: 그냥 여러가지...\n나: 말해봐\n상대방: our relationship에 대해 좀 생각했어",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "복합적",
+      "emotion_score": 6,
+      "emotion_emoji": "😶",
+      "description": "상대방이 관계에 대해 생각하고 있다고 합니다. 이별을 암시할 수도, 관계 발전을 원할 수도 있는 중요한 순간입니다.",
+      "emotion_changes": [
+        {
+          "point": "잠이 안 왔다고 했을 때",
+          "from": "걱정/불편",
+          "to": "긴장/注意深く"
+        }
+      ]
+    },
+    "explanation": "상대방이 관계에 대해 생각하고 있다고 합니다.この场合、静かに傾聴し、判断せず、彼女の話を全部聞いてあげることが重要です."
+  },
+  {
+    "id": "train_018",
+    "category": "advice_analysis",
+    "conversation": "나: 오늘 뭐 해?\n상대방: 안녕\n나: 뭐 해?\n상대방: 잠\n나: 잘 자\n상대방: ㅇ",
+    "analysis_type": "advice",
+    "response": {
+      "mistakes": [
+        {
+          "type": "같은 질문 반복",
+          "example": "뭐 해? → 잠 → 뭐 해?",
+          "why": "상대방이 답한 후 같은 질문을 반복하면 대화의 흐름이 끊김",
+          "improvement": "대화의 맥락에 따라 다른 질문을 하거나 자신의 이야기를 공유하세요"
+        }
+      ],
+      "habits": [
+        "연락 시간이 늦은 밤/새벽",
+        "반복적인 질문 패턴"
+      ],
+      "improvements": [
+        "잠들기 전에는 짧은 대화가 자연스러움",
+        "새벽보다는 낮이나 저녁에 연락하기",
+        "질문 대신陈述 위주"
+      ],
+      "strengths": [
+        "꾸준히 연락하려는 노력"
+      ],
+      "summary": "밤늦게 연락해서 비슷한 패턴의 대화가 반복되고 있습니다. 낮이나 저녁에 연락을 시도해보세요."
+    },
+    "explanation": "밤늦게 연락해서 상대방이 잠들려고 하는 상태입니다. 낮이나 저녁에 연락하면 더 좋은 대화를 할 수 있습니다."
+  },
+  {
+    "id": "train_019",
+    "category": "interest_analysis",
+    "conversation": "나: 오늘 퇴근하고 뭐 해?\n상대방: 약속 있어\n나: 아 그렇구나ㅠ\n상대방: 내일 시간 있어?\n나: 응 있어!\n상대방: 내일 보자!",
+    "analysis_type": "interest",
+    "response": {
+      "interest_level": "높음",
+      "interest_score": 9,
+      "evidence": [
+        "오늘 약속이 있어도 내일 만날 것을 스스로提案",
+        "상대방이 먼저 만남을 제안"
+      ],
+      "missed_signals": [],
+      "warning_signals": [],
+      "advice": "아주 좋은 신호입니다! 상대방이 오늘 약속이 있어도 내일 만나자고 했습니다. 내일 구체적인 장소와 시간을 정하세요."
+    },
+    "explanation": "상대방이 오늘 약속이 있어도 내일 만나자고 직접 제안했습니다. 이는 강력한 관심 신호입니다."
+  },
+  {
+    "id": "train_020",
+    "category": "comprehensive_analysis",
+    "conversation": "나: 오늘 데이트 어땠어?\n상대방:楽しかったㅎ\n나: 나도ㅎ\n상대방: 다음엔 더 좋은 데 가자\n나: 좋아! 어디 가고 싶어?\n상대방: 바다 어때?\n나: 좋아! 근데 나는 산도 좋아해ㅋㅋ\n상대방:ㅋㅋ 둘 다 가자",
+    "analysis_type": "comprehensive",
+    "response": {
+      "summary": {
+        "overview": "데이트 후 만족스러운 대화입니다. 상대방이 다음 만남을 암시하고 장소도 제안했습니다.",
+        "duration": "오늘",
+        "message_count": 7
+      },
+      "emotion": {
+        "overall": "긍정적",
+        "emoji": "😊",
+        "description": "만남이 즐거웠고 다음에 대한 기대가 있습니다."
+      },
+      "interest": {
+        "level": "높음",
+        "score": 9,
+        "evidence": [
+          "다음 만남 장소 제안",
+          "둘 다 가자는 협상적 태도"
+        ]
+      },
+      "analysis": {
+        "my_mistakes": [],
+        "good_points": [
+          "데이트 후 바로 피드백 공유",
+          "상대방의 제안에 열광적으로 반응"
+        ],
+        "missed_signals": []
+      },
+      "suggestions": {
+        "best_replies": [
+          {
+            "reply": "ㅋㅋ 좋아! 그럼 이번 주는 바다, 다음 주는 산 어때?",
+            "tone": "장난"
+          }
+        ],
+        "next_action": "다음 주 주말에 바다 데이트 일정을 잡으세요. 상대방이 먼저 제안했으므로 긍정적 반응이 기대됩니다."
+      }
+    },
+    "explanation": "아주 긍정적인 대화입니다. 상대방이 다음 만남 장소(바다)를 제안했습니다. 이번 주 주말에 바다 데이트를 잡으세요."
+  },
+  {
+    "id": "train_021",
+    "category": "emotion_analysis",
+    "conversation": "나: 오늘 새벽에 연락해도 돼?\n상대방: 응 괜찮아~\n나: 고마워ㅎ\n상대방:ㅎㅎ",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "긍정적",
+      "emotion_score": 7,
+      "emotion_emoji": "😊",
+      "description": "새벽에 연락해도 된다는 허락을 구하는 것에 상대방이快く 동의했습니다. 편안함을 의미합니다.",
+      "emotion_changes": []
+    },
+    "explanation": "상대방이 새벽 연락을 허락한 것은 편안함을 의미합니다. 하지만 새벽에는 짧게만 대화하세요."
+  },
+  {
+    "id": "train_022",
+    "category": "reply_suggestion",
+    "conversation": "상대방: 오늘 저녁에 시간 있어?",
+    "analysis_type": "replies",
+    "response": {
+      "last_message": "오늘 저녁에 시간 있어?",
+      "suggestions": [
+        {
+          "reply": "응 있어! 뭐 할까?",
+          "tone": "친근함",
+          "pros": "바로 긍정하고 선택권委譲",
+          "cons": "주도권이 상대방에게",
+          "best_for": "상대방이 주도하고 싶어할 때"
+        },
+        {
+          "reply": "응! 오늘 저녁에 만나서 밥 먹자",
+          "tone": "진지",
+          "pros": "밥이라는 구체적 제안, 주도적",
+          "cons": "상대방 일정에 대한 고려 부족",
+          "best_for": "진지하게 관계 발전 원할 때"
+        },
+        {
+          "reply": "ㅋㅋ 우리 요즘 자주 보네ㅎ 응 있어! 어디 갈까?",
+          "tone": "장난",
+          "pros": "자주 만나는 것을 확인하고 긍정적 분위기",
+          "cons": "약속 느낌이 약함",
+          "best_for": "가벼운 분위기일 때"
+        }
+      ],
+      "avoid": ["글쎄", "몰라", "바쁠 것 같아"]
+    },
+    "explanation": "상대방이 먼저 시간 여부를 물어본 것은 만남을 원하는 신호입니다. 바로 긍정하고 주도적으로 계획을 세우세요."
+  },
+  {
+    "id": "train_023",
+    "category": "emotion_analysis",
+    "conversation": "나: 오늘 힘들었어ㅠ\n상대방: 왜? 무슨 일 있어?\n나: 일太多了\n상대방:ㅠㅠ 힘내... 내일 커피 사줄게\n나:ㅋㅋ 진짜?\n상대방: 응ㅎ 오늘 많이 힘들었을 텐데",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "긍정적",
+      "emotion_score": 8,
+      "emotion_emoji": "🥰",
+      "description": "상대방이 나의 힘든 상황을 알아차리고 따뜻하게慰労해줍니다. 관계에서 배려심이 표현되고 있습니다.",
+      "emotion_changes": [
+        {
+          "point": "일 힘들다고 했을 때",
+          "from": "걱정 없음",
+          "to": "慰労/배려"
+        }
+      ]
+    },
+    "explanation": "상대방이 나의 힘든 상황을 듣고慰労의 의미로 커피를 사주겠다고 했습니다. 관계 발전의 좋은 신호입니다."
+  },
+  {
+    "id": "train_024",
+    "category": "interest_analysis",
+    "conversation": "나: 오늘 밤에 시간 있어?\n상대방: 오늘 밤은 약속이 있어\n나: 아 그렇구나ㅠ\n상대방: 내일은 어떠야?\n나: 내일 나쁘지 않아!\n상대방: 좋아! 내일 보자",
+    "analysis_type": "interest",
+    "response": {
+      "interest_level": "높음",
+      "interest_score": 9,
+      "evidence": [
+        "오늘 못 만나도 대안 날짜를 스스로提案",
+        "바로 내일 만남 약속 잡음"
+      ],
+      "missed_signals": [],
+      "warning_signals": [],
+      "advice": "아주 좋은 신호입니다! 상대방이 오늘 약속이 있어도 바로 대안을 제시하고 내일 만남을 잡았습니다."
+    },
+    "explanation": "오늘 못 만나도 바로 대안을 제시한 것은 강력한 관심 신호입니다."
+  },
+  {
+    "id": "train_025",
+    "category": "advice_analysis",
+    "conversation": "나: 오늘 뭐 해?\n상대방: work 야\n나: 나도ㅠ 요즘 너무 바빠\n상대방: 맞아... 우리 最近 못 봤지?\n나: 응ㅠ\n상대방: 다음 주엔 좀 덜 바쁠 것 같아",
+    "analysis_type": "advice",
+    "response": {
+      "mistakes": [
+        {
+          "type": "일 이야기에만 집중",
+          "example": "나도 work → 맞지? 정도만",
+          "why": "일 이야기만 하면 대화가 업무 보고一样了",
+          "improvement": "일 이야기를 끝내고 만나자고 제안하세요"
+        }
+      ],
+      "habits": [
+        "일 이야기로 대화 시작",
+        "互慰慰만 하고 끝남"
+      ],
+      "improvements": [
+        "일 이야기 후 바로 만남 제안: '그래도 다음 주엔 보자!'",
+        "specific한 활동 제안하기"
+      ],
+      "strengths": [
+        "互慰慰를 잘함",
+        "상대방의 상태를 파악하고 있음"
+      ],
+      "summary": "互慰慰는 잘하고 있지만, 대화가 일 이야기에서 끝나지 않고 만남으로 이어지도록 제안하세요."
+    },
+    "explanation": "서로 바쁘다고만 하면서 만남이 없습니다. 상대방이 다음 주 덜 바쁘다고 했으니 바로 만남을 잡으세요."
+  },
+  {
+    "id": "train_026",
+    "category": "emotion_analysis",
+    "conversation": "나: 오늘 입맛이 없어\n상대방: 왜? 아파?\n나: 아니 그냥 몸이 좀 그런 것 같아\n상대방: 그러면 쉬어야지ㅠ 오늘 일해?\n나: 응 해야 돼ㅠ\n상대방: 밥은起码 먹어야지. 오늘 저녁 내가 챙겨줄게",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "긍정적",
+      "emotion_score": 9,
+      "emotion_emoji": "🥰",
+      "description": "상대방이 나의 건강을 걱정하고 직접 밥을 챙겨주겠다고 합니다. 관계에서 깊은 관심과 배려가 표현되고 있습니다.",
+      "emotion_changes": [
+        {
+          "point": "밥을 챙겨주겠다고 했을 때",
+          "from": "걱정",
+          "to": "배려/실천"
+        }
+      ]
+    },
+    "explanation": "상대방이 나의 건강을 걱정하고 직접 챙겨주겠다고 합니다. 연인 수준의 배려입니다."
+  },
+  {
+    "id": "train_027",
+    "category": "reply_suggestion",
+    "conversation": "나: 오늘 밤에 연락할게\n상대방: 응 기다릴게",
+    "analysis_type": "replies",
+    "response": {
+      "last_message": "기다릴게",
+      "suggestions": [
+        {
+          "reply": "ㅎㅎ 나도 오늘 밤 기다려\n상대방: 어디 가?\n나: 편의점 가는데 뭐 마실래?",
+          "tone": "장난",
+          "pros": "상대방의 가�운 참여 유도",
+          "cons": "夜遅くに外出",
+          "best_for": "가벼운 밤 대화 원할 때"
+        },
+        {
+          "reply": "응ㅎ 오늘 밤에 电话해도 돼?",
+          "tone": "친근함",
+          "pros": "오늘 밤 전화 예고, 관계 발전",
+          "cons": "夜遅くに 전화하면 부담",
+          "best_for": "전화로 더 깊은 대화 원할 때"
+        }
+      ],
+      "avoid": ["ㅇ", "응"]
+    },
+    "explanation": "상대방이 기다리겠다고 했으므로 오늘 밤 꼭 연락하세요."
+  },
+  {
+    "id": "train_028",
+    "category": "emotion_analysis",
+    "conversation": "나: 오늘 입양했어\n상대방: 와 진짜?? 뭐야??\n나: 강아지!\n상대방: 너무 좋다ㅠㅠ pic 보기 싶어!\n나: [사진]\n상대방:ㅠㅠㅠ 너무 귀여워ㅠ 이름 뭐야?",
+    "analysis_type": "emotion",
+    "response": {
+      "emotion": "긍정적",
+      "emotion_score": 9,
+      "emotion_emoji": "🥰",
+      "description": "상대방이 내 소식을 듣고 excitement하게 반응하고 사진을 보기 싶다고 합니다.私の жизни에 대한 관심이 높습니다.",
+      "emotion_changes": [
+        {
+          "point": "사진을 보냈을 때",
+          "from": "기대/好奇",
+          "to": "感心/애정"
+        }
+      ]
+    },
+    "explanation": "상대방이 내 소식을 듣고 진심으로 기뻐하며 관심을 표현하고 있습니다. 관계 발전의 좋은 신호입니다."
+  },
+  {
+    "id": "train_029",
+    "category": "interest_analysis",
+    "conversation": "나: 우리 最近 좀 뜸했지?\n상대방: 맞아...ㅠ\n나: 미안해 너무 바빠서\n상대방: 나도 바빠서 그래\n나: 내일부터 덜 바빠질 것 같아\n상대방: 나도! 그럼 다시 열심히 연락하자ㅋㅋ",
+    "analysis_type": "interest",
+    "response": {
+      "interest_level": "높음",
+      "interest_score": 8,
+      "evidence": [
+        "서로 뜸했음을 인정",
+        "다시 열심히 연락하자고率先提出"
+      ],
+      "missed_signals": [],
+      "warning_signals": [
+        "뜸해지면 관심 하락 가능성"
+      ],
+      "advice": "상대방이 다시 열심히 연락하자고 했습니다. 바로 실천하세요. 매일 아침 or 저녁 간단한 연락을 시작해보세요."
+    },
+    "explanation": "서로 뜸해졌지만 다시 열심히 연락하기로 합의했습니다. 바로 실천하여 관계를 회복하세요."
+  },
+  {
+    "id": "train_030",
+    "category": "comprehensive_analysis",
+    "conversation": "나: 오늘 밤에 보자\n상대방: 좋아!\n나: 몇 시?\n상대방: 8시?\n나: 응 좋아! 어디서?\n상대방: 네가 정해\n나: 8시 역앞 카페 어때?\n상대방: 좋아ㅎㅎ",
+    "analysis_type": "comprehensive",
+    "response": {
+      "summary": {
+        "overview": "만남이 quickly 잡힌 대화입니다. 상대방이 바로 동의하고 장소 선택권을男方에게 맡겼습니다.",
+        "duration": "오늘",
+        "message_count": 7
+      },
+      "emotion": {
+        "overall": "긍정적",
+        "emoji": "😊",
+        "description": "만남이 자연스럽게 잡혔습니다. 상대방의 긍정적 태도가明显합니다."
+      },
+      "interest": {
+        "level": "높음",
+        "score": 8,
+        "evidence": [
+          "만남에 바로 동의",
+          "장소 선택권委譲"
+        ]
+      },
+      "analysis": {
+        "my_mistakes": [],
+        "good_points": [
+          "만남을率先提出",
+          "구체적 시간 제안",
+          "장소도 구체적으로 제안"
+        ],
+        "missed_signals": []
+      },
+      "suggestions": {
+        "best_replies": [
+          {
+            "reply": "8시 역앞 카페에서 보자! 늦으면 电话해",
+            "tone": "진지"
+          }
+        ],
+        "next_action": "오늘 밤 8시 역앞 카페. 만남 전에 맛있는 것 사가는 센스!"
+      }
+    },
+    "explanation": "매우顺利하게 만남이 잡혔습니다. 오늘 밤 8시 역앞 카페에서 만나세요."
+  }
+]
