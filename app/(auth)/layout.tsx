@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </div>
 
       <Link href="/" className="mb-8 flex items-center">
-        <img src="/logo.svg" alt="BidVibe" className="h-10 w-auto" />
+        <img src="/BidVibe_logo1.svg" alt="BidVibe" className="h-10 w-auto" />
       </Link>
       {children}
     </div>
