@@ -49,7 +49,7 @@ export default function ClinicGroupBuyPage() {
 
       if (!gbs?.length) { setList([]); setLoading(false); return }
 
-      let joinedIds = new Set<string>()
+      const joinedIds = new Set<string>()
       if (user?.id) {
         const { data: parts } = await db
           .from('medi_group_buy_participants')

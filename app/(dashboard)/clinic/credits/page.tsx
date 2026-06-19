@@ -2,7 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Coins, Gift, CheckCircle2, UserPlus, Star, ClipboardList } from 'lucide-react'
 
-const RULE_ICONS: Record<string, React.ReactNode> = {}
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _RULE_ICONS: Record<string, React.ReactNode> = {}
 
 const EARN_RULES = [
   { key: 'clinic_first_request', icon: '✏️', label: '첫 견적 요청 등록',  points: 30 },
