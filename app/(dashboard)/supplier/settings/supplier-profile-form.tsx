@@ -7,27 +7,41 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { updateSupplierProfile } from '@/lib/actions/supplier'
-import { ITEM_TYPE_LABELS, ITEM_TYPE_ICONS, CATEGORY_TREE } from '@/lib/categories'
-import { EQUIPMENT_SUB_TYPE_LABELS, type EquipmentSubType } from '@/lib/equipment-specs'
+import { ITEM_TYPE_LABELS, ITEM_TYPE_ICONS, CATEGORY_TREE, type ItemType } from '@/lib/categories'
 import { cn } from '@/lib/utils'
 import { useT } from '@/lib/i18n/context'
 import { createClient } from '@/lib/supabase/client'
-import { ShieldCheck, Upload, X, ExternalLink } from 'lucide-react'
+import { ShieldCheck, Upload, X, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 
-const TOP_CATEGORIES = [
-  { value: 'reagent', label: ITEM_TYPE_LABELS.reagent, icon: ITEM_TYPE_ICONS.reagent },
-  { value: 'protein', label: ITEM_TYPE_LABELS.protein, icon: ITEM_TYPE_ICONS.protein },
-  { value: 'supply', label: ITEM_TYPE_LABELS.supply, icon: ITEM_TYPE_ICONS.supply },
-  { value: 'equipment', label: ITEM_TYPE_LABELS.equipment, icon: ITEM_TYPE_ICONS.equipment },
-  { value: 'safety', label: '안전·보호구', icon: '🦺' },
-  { value: 'other', label: '기타', icon: '📋' },
-]
+const ITEM_TYPES: ItemType[] = ['reagent', 'protein', 'supply', 'equipment']
 
-const PROTEIN_SUBCATS = CATEGORY_TREE.protein.map(n => ({ value: n.code, label: n.label }))
-const EQUIP_SUBCATS = (Object.keys(EQUIPMENT_SUB_TYPE_LABELS) as EquipmentSubType[]).map(k => ({
-  value: k,
-  label: EQUIPMENT_SUB_TYPE_LABELS[k],
-}))
+/** 기존 최상위 코드('reagent','protein' 등)가 저장된 경우 하위 전체로 확장 */
+function initFromSaved(saved: string[]): Set<string> {
+  const result = new Set<string>()
+  for (const code of saved) {
+    if (ITEM_TYPES.includes(code as ItemType)) {
+      // 최상위 타입 → 모든 하위 코드 추가
+      for (const node of CATEGORY_TREE[code as ItemType] ?? []) {
+        result.add(node.code)
+        for (const child of node.children ?? []) result.add(child.code)
+      }
+    } else {
+      result.add(code)
+    }
+  }
+  return result
+}
+
+function getAllCodesForType(type: ItemType): string[] {
+  const codes: string[] = []
+  for (const node of CATEGORY_TREE[type] ?? []) {
+    codes.push(node.code)
+    for (const child of node.children ?? []) codes.push(child.code)
+  }
+  return codes
+}
+
+const ALL_CODES = ITEM_TYPES.flatMap(getAllCodesForType)
 
 const REGIONS = [
   { value: 'seoul', label: '서울' },
@@ -59,22 +73,49 @@ interface SupplierProfile {
 
 export function SupplierProfileForm({ profile }: { profile: SupplierProfile | null }) {
   const t = useT()
-  const [categories, setCategories] = useState<string[]>(profile?.categories ?? [])
-  const [proteinCats, setProteinCats] = useState<string[]>(profile?.protein_categories ?? [])
-  const [equipCats, setEquipCats] = useState<string[]>(profile?.equipment_categories ?? [])
+  const [selectedCats, setSelectedCats] = useState<Set<string>>(
+    initFromSaved(profile?.categories ?? [])
+  )
+  const [expandedTypes, setExpandedTypes] = useState<Set<ItemType>>(new Set(ITEM_TYPES))
   const [regions, setRegions] = useState<string[]>(profile?.regions ?? [])
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
+
+  function toggleCat(code: string) {
+    setSelectedCats(prev => {
+      const next = new Set(prev)
+      if (next.has(code)) next.delete(code); else next.add(code)
+      return next
+    })
+  }
+
+  function toggleType(type: ItemType) {
+    const codes = getAllCodesForType(type)
+    const allSelected = codes.every(c => selectedCats.has(c))
+    setSelectedCats(prev => {
+      const next = new Set(prev)
+      if (allSelected) codes.forEach(c => next.delete(c))
+      else codes.forEach(c => next.add(c))
+      return next
+    })
+  }
+
+  function selectAll() { setSelectedCats(new Set(ALL_CODES)) }
+  function deselectAll() { setSelectedCats(new Set()) }
+
+  function toggleExpand(type: ItemType) {
+    setExpandedTypes(prev => {
+      const next = new Set(prev)
+      if (next.has(type)) next.delete(type); else next.add(type)
+      return next
+    })
+  }
 
   // 취급허가증 업로드
   const [permitUrl, setPermitUrl] = useState<string | null>(profile?.permit_url ?? null)
   const [permitUploading, setPermitUploading] = useState(false)
   const [permitError, setPermitError] = useState('')
   const permitFileRef = useRef<HTMLInputElement>(null)
-
-  function toggle<T extends string>(arr: T[], val: T, setter: (a: T[]) => void) {
-    setter(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val])
-  }
 
   async function handlePermitUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -126,19 +167,14 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
       .eq('user_id', user.id)
   }
 
-  const hasProtein = categories.includes('protein')
-  const hasEquipment = categories.includes('equipment')
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setStatus('saving')
     setErrorMsg('')
 
     const formData = new FormData(e.currentTarget)
-    categories.forEach(c => formData.append('categories', c))
+    Array.from(selectedCats).forEach(c => formData.append('categories', c))
     regions.forEach(r => formData.append('regions', r))
-    proteinCats.forEach(c => formData.append('proteinCategories', c))
-    equipCats.forEach(c => formData.append('equipmentCategories', c))
 
     const result = await updateSupplierProfile(formData)
 
@@ -188,67 +224,126 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
 
       <Separator />
 
-      {/* 취급 대분류 */}
+      {/* 취급 카테고리 — 연구자 분류체계와 동일 */}
       <section className="space-y-3">
-        <div>
-          <h2 className="font-semibold">{t('spf.categorySection')}</h2>
-          <p className="text-xs text-muted-foreground mt-0.5">{t('spf.categorySub')}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {TOP_CATEGORIES.map(({ value, label, icon }) => (
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h2 className="font-semibold">{t('spf.categorySection')}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">공급 가능한 품목을 구체적으로 선택해주세요.</p>
+          </div>
+          <div className="flex gap-1.5 shrink-0">
             <button
-              key={value}
               type="button"
-              onClick={() => toggle(categories, value, setCategories)}
-              className={cn(
-                'flex items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm transition-colors text-left',
-                categories.includes(value)
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'border-border bg-background text-foreground hover:border-muted-foreground'
-              )}
+              onClick={selectAll}
+              className="rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
             >
-              <span className="text-base">{icon}</span>
-              <span className="font-medium text-xs">{label}</span>
+              전체 선택
             </button>
-          ))}
+            <button
+              type="button"
+              onClick={deselectAll}
+              className="rounded-md border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+            >
+              전체 해제
+            </button>
+          </div>
         </div>
 
-        {/* 단백질 서브카테고리 */}
-        {hasProtein && (
-          <div className="rounded-lg border border-primary/20 bg-primary/3 p-4 space-y-2 ml-2">
-            <p className="text-xs font-semibold text-primary">{t('spf.proteinSub')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {PROTEIN_SUBCATS.map(({ value, label }) => (
-                <div key={value} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`pcat-${value}`}
-                    checked={proteinCats.includes(value)}
-                    onCheckedChange={() => toggle(proteinCats, value, setProteinCats)}
-                  />
-                  <label htmlFor={`pcat-${value}`} className="text-xs cursor-pointer">{label}</label>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="space-y-2">
+          {ITEM_TYPES.map(type => {
+            const nodes = CATEGORY_TREE[type]
+            const typeCodes = getAllCodesForType(type)
+            const selectedCount = typeCodes.filter(c => selectedCats.has(c)).length
+            const allTypeSelected = selectedCount === typeCodes.length
+            const isExpanded = expandedTypes.has(type)
 
-        {/* 장비 서브카테고리 */}
-        {hasEquipment && (
-          <div className="rounded-lg border border-primary/20 bg-primary/3 p-4 space-y-2 ml-2">
-            <p className="text-xs font-semibold text-primary">{t('spf.equipSub')}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {EQUIP_SUBCATS.map(({ value, label }) => (
-                <div key={value} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`ecat-${value}`}
-                    checked={equipCats.includes(value)}
-                    onCheckedChange={() => toggle(equipCats, value, setEquipCats)}
-                  />
-                  <label htmlFor={`ecat-${value}`} className="text-xs cursor-pointer">{label}</label>
+            return (
+              <div key={type} className="rounded-lg border border-border overflow-hidden">
+                {/* 타입 헤더 */}
+                <div className="flex items-center gap-2 bg-muted/40 px-3 py-2.5">
+                  <button
+                    type="button"
+                    onClick={() => toggleExpand(type)}
+                    className="flex items-center gap-1.5 flex-1 text-left"
+                  >
+                    <span className="text-base">{ITEM_TYPE_ICONS[type]}</span>
+                    <span className="text-sm font-semibold">{ITEM_TYPE_LABELS[type]}</span>
+                    {selectedCount > 0 && (
+                      <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                        {selectedCount}/{typeCodes.length}
+                      </span>
+                    )}
+                    {isExpanded
+                      ? <ChevronDown className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
+                      : <ChevronRight className="h-3.5 w-3.5 ml-auto text-muted-foreground" />
+                    }
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggleType(type)}
+                    className={cn(
+                      'shrink-0 rounded px-2 py-0.5 text-[10px] font-medium border transition-colors',
+                      allTypeSelected
+                        ? 'border-primary/40 bg-primary/10 text-primary'
+                        : 'border-border text-muted-foreground hover:border-primary/40 hover:text-primary'
+                    )}
+                  >
+                    {allTypeSelected ? '유형 해제' : '유형 전체'}
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
+
+                {/* 하위 카테고리 */}
+                {isExpanded && (
+                  <div className="p-3 space-y-3">
+                    {nodes.map(node => (
+                      <div key={node.code}>
+                        {node.children ? (
+                          /* 자식이 있는 중간 노드 */
+                          <div className="space-y-1.5">
+                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                              {node.label}
+                            </p>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pl-1">
+                              {node.children.map(child => (
+                                <div key={child.code} className="flex items-center gap-2">
+                                  <Checkbox
+                                    id={`cat-${child.code}`}
+                                    checked={selectedCats.has(child.code)}
+                                    onCheckedChange={() => toggleCat(child.code)}
+                                  />
+                                  <label htmlFor={`cat-${child.code}`} className="text-xs cursor-pointer leading-tight">
+                                    {child.label}
+                                  </label>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          /* 리프 노드 */
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id={`cat-${node.code}`}
+                              checked={selectedCats.has(node.code)}
+                              onCheckedChange={() => toggleCat(node.code)}
+                            />
+                            <label htmlFor={`cat-${node.code}`} className="text-xs cursor-pointer">
+                              {node.label}
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {selectedCats.size > 0 && (
+          <p className="text-xs text-muted-foreground">
+            총 <span className="font-medium text-foreground">{selectedCats.size}</span>개 카테고리 선택됨
+          </p>
         )}
       </section>
 
@@ -263,7 +358,7 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
               <Checkbox
                 id={`reg-${value}`}
                 checked={regions.includes(value)}
-                onCheckedChange={() => toggle(regions, value, setRegions)}
+                onCheckedChange={() => setRegions(prev => prev.includes(value) ? prev.filter(r => r !== value) : [...prev, value])}
               />
               <label htmlFor={`reg-${value}`} className="text-sm cursor-pointer">{t(`sregion.${value}`)}</label>
             </div>

@@ -129,8 +129,6 @@ export async function signupSupplier(formData: FormData) {
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
-  if (!isInstitutionalEmail(email)) return { error: INSTITUTIONAL_EMAIL_ERROR }
-
   const companyName = formData.get('companyName') as string
   const businessNumber = (formData.get('businessNumber') as string).replace(/-/g, '')
   const representative = (formData.get('representative') as string) || null
@@ -329,3 +327,4 @@ export async function changePassword(
   if (error) return { ok: false, error: error.message }
   return { ok: true }
 }
+                                                                                   

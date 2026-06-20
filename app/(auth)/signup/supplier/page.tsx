@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { signupSupplier } from '@/lib/actions/auth'
-import { isInstitutionalEmail, INSTITUTIONAL_EMAIL_ERROR } from '@/lib/email-validation'
 import { PrivacyConsent } from '@/components/privacy-consent'
 import { PhoneVerify } from '@/components/phone-verify'
 import {
@@ -30,7 +29,7 @@ const COUNTRY_ORDER: CountryCode[] = ['US', 'CN', 'EU', 'JP', 'OTHER']
 const OVERSEAS_COUNTRIES = COUNTRY_ORDER.map(code => COUNTRY_MAP[code]).filter(Boolean)
 
 type Origin = 'domestic' | 'overseas'
-type SupplyType = 'chemical' | 'equipment' | ''
+type SupplyType = 'chemical' | 'equipment'
 type OrType = 'only_representative' | 'korea_branch' | ''
 
 const VERIFY_BADGE_CLASS: Record<string, string> = {
@@ -275,7 +274,7 @@ export default function SupplierSignupPage() {
   const [loading, setLoading] = useState(false)
 
   const [origin, setOrigin] = useState<Origin>('domestic')
-  const [supplyType, setSupplyType] = useState<SupplyType>('')
+  const [supplyTypes, setSupplyTypes] = useState<SupplyType[]>([])
   const [countryCode, setCountryCode] = useState<CountryCode | ''>('')
   const [orType, setOrType] = useState<OrType>('')
   const [orCompanyName, setOrCompanyName] = useState('')
@@ -345,19 +344,29 @@ export default function SupplierSignupPage() {
   }, [])
 
   const effectiveCountryCode: CountryCode | '' = origin === 'domestic' ? 'KR' : countryCode
-  const isOverseasChemical = origin === 'overseas' && supplyType === 'chemical'
+  const isOverseasChemical = origin === 'overseas' && supplyTypes.includes('chemical')
   const needsKoreanBiz = origin === 'domestic' || isOverseasChemical
 
-  const currentRegs: CountryRegulation[] = effectiveCountryCode && supplyType
-    ? getRegulations(effectiveCountryCode as CountryCode, supplyType)
+  const isBothTypes = supplyTypes.includes('chemical') && supplyTypes.includes('equipment')
+  const effectiveRegType: 'chemical' | 'equipment' | 'both' | '' =
+    isBothTypes ? 'both' : (supplyTypes[0] ?? '')
+
+  const currentRegs: CountryRegulation[] = effectiveCountryCode && effectiveRegType
+    ? getRegulations(effectiveCountryCode as CountryCode, effectiveRegType as 'chemical' | 'equipment' | 'both')
     : []
+
+  function toggleSupplyType(st: SupplyType) {
+    setSupplyTypes(prev =>
+      prev.includes(st) ? prev.filter(t => t !== st) : [...prev, st]
+    )
+  }
 
   // 국가/유형 변경 시 규제 상태 초기화
   useEffect(() => {
     setRegulationAcks({})
     setRegulationPermitNos({})
     setRegulationFiles({})
-  }, [effectiveCountryCode, supplyType])
+  }, [effectiveCountryCode, supplyTypes.join(',')])
 
   function formatBusinessNumber(value: string) {
     const digits = value.replace(/\D/g, '').slice(0, 10)
@@ -395,7 +404,7 @@ export default function SupplierSignupPage() {
     setError('')
 
     if (!consent.terms || !consent.privacy) { setError(t('err.agreeRequired')); return }
-    if (!supplyType) { setError('공급 유형(화학물질 / 장비)을 선택해주세요.'); return }
+    if (supplyTypes.length === 0) { setError('공급 유형(화학물질 / 장비)을 하나 이상 선택해주세요.'); return }
 
     if (origin === 'overseas') {
       if (!countryCode) { setError('본사 소재 국가를 선택해주세요.'); return }
@@ -417,9 +426,6 @@ export default function SupplierSignupPage() {
     if (origin === 'domestic' && !verifiedPhone) { setError(t('err.phoneRequired')); return }
 
     const formData = new FormData(e.currentTarget)
-    const email = formData.get('email') as string
-    if (!isInstitutionalEmail(email)) { setError(INSTITUTIONAL_EMAIL_ERROR); setLoading(false); return }
-
     const password = formData.get('password') as string
     const confirm = formData.get('confirmPassword') as string
     if (password !== confirm) { setError(t('err.passwordMismatch')); return }
@@ -429,7 +435,7 @@ export default function SupplierSignupPage() {
     selectedCategories.forEach(c => formData.append('categories', c))
     formData.set('businessNumber', finalBizNumber)
     formData.set('origin', origin)
-    formData.set('supplyType', supplyType)
+    formData.set('supplyType', supplyTypes.join(','))
     formData.set('country_code', effectiveCountryCode || '')
     formData.set('regulation_acks', JSON.stringify(regulationAcks))
     formData.set('regulation_permit_numbers', JSON.stringify(regulationPermitNos))
@@ -446,7 +452,7 @@ export default function SupplierSignupPage() {
     })
 
     if (origin === 'overseas') {
-      formData.set('overseasSupplyType', supplyType)
+      formData.set('overseasSupplyType', supplyTypes.join(','))
       formData.set('country', effectiveCountryCode || '')
       if (isOverseasChemical) {
         formData.set('orType', orType)
@@ -511,7 +517,7 @@ export default function SupplierSignupPage() {
               {(['domestic', 'overseas'] as Origin[]).map(o => (
                 <button
                   type="button" key={o}
-                  onClick={() => { setOrigin(o); setBizVerified('idle'); setBizMessage(''); setCountryCode(''); setSupplyType('') }}
+                  onClick={() => { setOrigin(o); setBizVerified('idle'); setBizMessage(''); setCountryCode(''); setSupplyTypes([]) }}
                   className={`rounded-lg border p-3 text-left transition ${
                     origin === o ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:bg-muted/50'
                   }`}
@@ -550,26 +556,39 @@ export default function SupplierSignupPage() {
 
           {/* 공급 유형 */}
           <div className="space-y-2">
-            <Label>{t('ov.supplyType')} <span className="text-destructive">*</span></Label>
+            <Label>
+              {t('ov.supplyType')} <span className="text-destructive">*</span>
+              <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">(복수 선택 가능)</span>
+            </Label>
             <div className="grid grid-cols-2 gap-2">
-              {(['chemical', 'equipment'] as SupplyType[]).map(st => (
-                <button
-                  key={st} type="button"
-                  onClick={() => setSupplyType(st)}
-                  className={`rounded-lg border p-3 text-left transition ${
-                    supplyType === st ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:bg-muted/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5 text-sm font-semibold">
-                    {st === 'chemical' ? <FlaskConical className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
-                    {t(st === 'chemical' ? 'ov.supplyChemical' : 'ov.supplyEquipment')}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">
-                    {t(st === 'chemical' ? 'ov.supplyChemicalDesc' : 'ov.supplyEquipmentDesc')}
-                  </div>
-                </button>
-              ))}
+              {(['chemical', 'equipment'] as SupplyType[]).map(st => {
+                const selected = supplyTypes.includes(st)
+                return (
+                  <button
+                    key={st} type="button"
+                    onClick={() => toggleSupplyType(st)}
+                    className={`rounded-lg border p-3 text-left transition ${
+                      selected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-sm font-semibold">
+                      {st === 'chemical' ? <FlaskConical className="h-3.5 w-3.5" /> : <Wrench className="h-3.5 w-3.5" />}
+                      {t(st === 'chemical' ? 'ov.supplyChemical' : 'ov.supplyEquipment')}
+                      {selected && <CheckCircle2 className="h-3.5 w-3.5 ml-auto text-primary" />}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {t(st === 'chemical' ? 'ov.supplyChemicalDesc' : 'ov.supplyEquipmentDesc')}
+                    </div>
+                  </button>
+                )
+              })}
             </div>
+            {isBothTypes && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-[11px] text-primary flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                화학물질과 장비를 모두 공급하는 사업자로 등록됩니다. 두 유형의 규제 요건이 모두 적용됩니다.
+              </div>
+            )}
           </div>
 
           {/* 해외 화학 공급자: 유일대리인/한국지사 */}
@@ -747,7 +766,7 @@ export default function SupplierSignupPage() {
           {/* 이메일 */}
           <div className="space-y-2">
             <Label htmlFor="email">{t('common.email')}</Label>
-            <Input id="email" name="email" type="email" placeholder="contact@company.com" required autoComplete="email" />
+            <Input id="email" name="email" type="email" placeholder="contact@company.com / contact@gmail.com" required autoComplete="email" />
           </div>
 
           {/* 비밀번호 */}

@@ -319,7 +319,7 @@ export const dictionary: Record<Lang, Dict> = {
     // 공급자 가입 (공통)
     'ss.title': '공급자 베타 참여',
     'ss.subtitle': '처음 20개사 Pro 1개월 무료 얼리버드 혜택을 드립니다.',
-    'ss.emailNote': '회사 이메일만 베타 참여가 가능합니다',
+    'ss.emailNote': '개인 이메일로도 가입 가능합니다',
     'ss.companyName': '회사명',
     'ss.companyNamePlaceholder': '(주)바이오서플라이',
     'ss.businessNumber': '사업자번호',
@@ -1279,7 +1279,7 @@ export const dictionary: Record<Lang, Dict> = {
     // Supplier sign up (common)
     'ss.title': 'Supplier Beta Sign Up',
     'ss.subtitle': 'The first 20 companies get Pro free for 1 month (early-bird).',
-    'ss.emailNote': 'Only company emails are eligible for the beta',
+    'ss.emailNote': 'All email addresses are accepted',
     'ss.companyName': 'Company Name',
     'ss.companyNamePlaceholder': 'BioSupply Inc.',
     'ss.businessNumber': 'Business Registration No.',
@@ -2100,3 +2100,4 @@ export const dictionary: Record<Lang, Dict> = {
 export function translate(lang: Lang, key: string): string {
   return dictionary[lang]?.[key] ?? dictionary['ko']?.[key] ?? key
 }
+                    
