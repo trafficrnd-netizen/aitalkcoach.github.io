@@ -2,20 +2,28 @@
 
 import { Globe } from 'lucide-react'
 import { useI18n } from '@/lib/i18n/context'
+import { useRouter } from 'next/navigation'
+import { useTransition } from 'react'
 import type { Lang } from '@/lib/i18n/dictionary'
 
 /**
  * 한/영 언어 전환 토글.
  * variant:
- *  - 'pill'    : 둥근 칩 (기본, 헤더 데스크톱용)
+ *  - 'pill'    : 둥근 칩 (기본, 헤더 데스크탑용)
  *  - 'compact' : 아이콘 + 현재 언어 코드만 (모바일 헤더용)
  *  - 'inline'  : 텍스트형 (사이드바·푸터용)
  */
 export function LanguageToggle({ variant = 'pill' }: { variant?: 'pill' | 'compact' | 'inline' }) {
   const { lang, setLang } = useI18n()
+  const router = useRouter()
+  const [, startTransition] = useTransition()
 
-  const toggle = () => setLang(lang === 'ko' ? 'en' : ('en' === lang ? 'ko' : 'en'))
   const next: Lang = lang === 'ko' ? 'en' : 'ko'
+
+  function toggle() {
+    setLang(next)
+    startTransition(() => { router.refresh() })
+  }
 
   if (variant === 'compact') {
     return (
@@ -35,7 +43,7 @@ export function LanguageToggle({ variant = 'pill' }: { variant?: 'pill' | 'compa
     return (
       <button
         type="button"
-        onClick={() => setLang(next)}
+        onClick={toggle}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition"
         aria-label="Switch language"
       >

@@ -4,9 +4,10 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { ITEM_TYPE_LABELS, ITEM_TYPE_ICONS, type ItemType } from '@/lib/categories'
+import { ITEM_TYPE_ICONS, type ItemType } from '@/lib/categories'
 import { cn } from '@/lib/utils'
 import { Star, ShoppingCart, Tag } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/context'
 
 type Request = {
   id: string
@@ -23,13 +24,7 @@ type Request = {
   discount_requested?: boolean | null
 }
 
-const FILTER_TABS: { value: 'all' | ItemType; label: string; icon: string }[] = [
-  { value: 'all', label: '전체', icon: '📋' },
-  { value: 'reagent', label: ITEM_TYPE_LABELS.reagent, icon: ITEM_TYPE_ICONS.reagent },
-  { value: 'protein', label: ITEM_TYPE_LABELS.protein, icon: ITEM_TYPE_ICONS.protein },
-  { value: 'supply', label: ITEM_TYPE_LABELS.supply, icon: ITEM_TYPE_ICONS.supply },
-  { value: 'equipment', label: ITEM_TYPE_LABELS.equipment, icon: ITEM_TYPE_ICONS.equipment },
-]
+const ITEM_TYPES: ItemType[] = ['reagent', 'protein', 'supply', 'equipment']
 
 interface Props {
   requests: Request[]
@@ -40,20 +35,30 @@ interface Props {
 }
 
 export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet, preferredResearcherIds }: Props) {
+  const { t, lang } = useI18n()
+  const locale = lang === 'en' ? 'en-US' : 'ko-KR'
   const [activeType, setActiveType] = useState<'all' | ItemType>('all')
   const myBids = new Set(myBidSet)
   const today = new Date()
+
+  const FILTER_TABS = [
+    { value: 'all' as const, label: t('mp.filterAll'), icon: '📋' },
+    ...ITEM_TYPES.map(type => ({
+      value: type,
+      label: t(`itype.${type}`),
+      icon: ITEM_TYPE_ICONS[type],
+    })),
+  ]
 
   const filtered = activeType === 'all'
     ? requests
     : requests.filter(r => (r.item_type ?? 'reagent') === activeType)
 
-  // 단골 연구자 요청을 상단으로 정렬
   const sorted = preferredResearcherIds && preferredResearcherIds.size > 0
     ? [...filtered].sort((a, b) => {
-        const aPreferred = a.user_id && preferredResearcherIds.has(a.user_id) ? 1 : 0
-        const bPreferred = b.user_id && preferredResearcherIds.has(b.user_id) ? 1 : 0
-        return bPreferred - aPreferred
+        const aP = a.user_id && preferredResearcherIds.has(a.user_id) ? 1 : 0
+        const bP = b.user_id && preferredResearcherIds.has(b.user_id) ? 1 : 0
+        return bP - aP
       })
     : filtered
 
@@ -90,23 +95,25 @@ export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet,
         ))}
         {activeType !== 'all' && (
           <span className="text-xs text-muted-foreground self-center ml-1">
-            {filtered.length}건 표시 / 전체 {requests.length}건
+            {t('mp.filteredOf').replace('{n}', String(filtered.length)).replace('{total}', String(requests.length))}
           </span>
         )}
       </div>
 
-      {/* 단골 연구자 존재 시 안내 배지 */}
+      {/* 단골 연구자 안내 */}
       {preferredCount > 0 && (
         <div className="flex items-center gap-1.5 mb-3 text-xs text-secondary font-medium">
           <Star className="h-3.5 w-3.5 fill-secondary" />
-          단골 연구자 요청 {preferredCount}건 상단 표시
+          {t('mp.preferredNote').replace('{n}', String(preferredCount))}
         </div>
       )}
 
       {/* 요청 목록 */}
       {sorted.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border py-20 text-center text-muted-foreground text-sm">
-          {activeType === 'all' ? '현재 공개된 견적 요청이 없습니다.' : `${ITEM_TYPE_LABELS[activeType as ItemType]} 요청이 없습니다.`}
+          {activeType === 'all'
+            ? t('mp.noRequests')
+            : t('mp.noTypeRequests').replace('{type}', t(`itype.${activeType}`))}
         </div>
       ) : (
         <div className="flex flex-col gap-3">
@@ -130,52 +137,56 @@ export function MarketplaceList({ requests, itemCountMap, bidCountMap, myBidSet,
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
                       <span className="text-sm">{ITEM_TYPE_ICONS[itemType]}</span>
-                      <span className="font-semibold">{req.title ?? '(제목 없음)'}</span>
+                      <span className="font-semibold">{req.title ?? t('dash.noTitle')}</span>
                       <Badge variant="outline" className="text-xs">
-                        {req.type === 'batch' ? `묶음 ${itemCount}개 품목` : '단건'}
+                        {req.type === 'batch'
+                          ? t('mp.batch').replace('{n}', String(itemCount))
+                          : t('mp.single')}
                       </Badge>
                       {isPreferred && (
                         <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary/15 px-2 py-0.5 text-[10px] font-medium text-secondary">
-                          <Star className="h-2.5 w-2.5 fill-secondary" /> 단골
+                          <Star className="h-2.5 w-2.5 fill-secondary" /> {t('mp.preferred')}
                         </span>
                       )}
-                      {alreadyBid && <Badge variant="secondary" className="text-xs">입찰 완료</Badge>}
-                      {isExpired && <Badge variant="outline" className="text-xs text-muted-foreground">마감됨</Badge>}
+                      {alreadyBid && <Badge variant="secondary" className="text-xs">{t('mp.bidDone')}</Badge>}
+                      {isExpired && <Badge variant="outline" className="text-xs text-muted-foreground">{t('mp.expired')}</Badge>}
                     </div>
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                       {req.deadline && (
                         <span className={isExpired ? 'text-destructive font-medium' : ''}>
-                          마감 {new Date(req.deadline).toLocaleDateString('ko-KR')}
+                          {t('mp.deadline').replace('{date}', new Date(req.deadline).toLocaleDateString(locale))}
                         </span>
                       )}
                       {req.delivery_city && <span className="flex items-center gap-0.5">📍 {req.delivery_city}</span>}
                       {req.is_group_buy && (
                         <span className="inline-flex items-center gap-0.5 rounded-full bg-secondary/15 px-1.5 py-0.5 text-[10px] font-medium text-secondary">
-                          <ShoppingCart className="h-2.5 w-2.5" /> 그룹바이
+                          <ShoppingCart className="h-2.5 w-2.5" /> {t('mp.groupBuy')}
                         </span>
                       )}
                       {req.discount_requested && (
                         <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                          <Tag className="h-2.5 w-2.5" /> 할인요청
+                          <Tag className="h-2.5 w-2.5" /> {t('mp.discount')}
                         </span>
                       )}
-                      <span>입찰 {bidCount}건</span>
+                      <span>{t('mp.bids').replace('{n}', String(bidCount))}</span>
                       <span className="text-muted-foreground/60">
-                        {new Date(req.created_at).toLocaleDateString('ko-KR')} 게시
+                        {t('mp.posted').replace('{date}', new Date(req.created_at).toLocaleDateString(locale))}
                       </span>
                     </div>
                     {req.notes && (
-                      <p className="mt-2 text-xs text-muted-foreground line-clamp-1">요청사항: {req.notes}</p>
+                      <p className="mt-2 text-xs text-muted-foreground line-clamp-1">
+                        {t('mp.notes').replace('{text}', req.notes)}
+                      </p>
                     )}
                   </div>
                   <div className="shrink-0">
                     {alreadyBid ? (
-                      <span className="text-xs text-muted-foreground">완료</span>
+                      <span className="text-xs text-muted-foreground">{t('mp.done')}</span>
                     ) : isExpired ? (
-                      <span className="text-xs text-muted-foreground">마감</span>
+                      <span className="text-xs text-muted-foreground">{t('mp.closed')}</span>
                     ) : (
                       <Link href={`/supplier/bid/${req.id}`} className={buttonVariants({ size: 'sm' })}>
-                        입찰하기
+                        {t('mp.bidBtn')}
                       </Link>
                     )}
                   </div>

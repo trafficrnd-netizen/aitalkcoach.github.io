@@ -51,12 +51,13 @@ export function Header({ user }: { user?: HeaderUser | null }) {
           </nav>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0 sm:gap-3">
-          <span className="inline-flex sm:hidden"><LanguageToggle variant="compact" /></span>
-          <span className="hidden sm:inline-flex"><LanguageToggle /></span>
+        {/* 모바일: 가로 슬라이드 / 데스크탑: 그대로 표시 */}
+        <div className="flex items-center gap-1.5 sm:gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]">
+          <span className="inline-flex sm:hidden shrink-0"><LanguageToggle variant="compact" /></span>
+          <span className="hidden sm:inline-flex shrink-0"><LanguageToggle /></span>
           {user ? (
             <>
-              <span className="hidden items-center gap-1.5 lg:flex">
+              <span className="hidden items-center gap-1.5 lg:flex shrink-0">
                 <span className="h-2 w-2 rounded-full bg-secondary" aria-hidden="true" />
                 <span className="text-sm text-muted-foreground">
                   {user.dashboardPath.includes('/supplier') ? t('nav.roleSupplier') : t('nav.roleResearcher')} ·{' '}
@@ -65,7 +66,7 @@ export function Header({ user }: { user?: HeaderUser | null }) {
               </span>
               <Link
                 href={user.dashboardPath}
-                className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5')}
+                className={cn(buttonVariants({ size: 'sm' }), 'gap-1.5 shrink-0')}
               >
                 <LayoutDashboard className="h-4 w-4" />
                 <span className="hidden sm:inline">{t('nav.myDashboard')}</span>
@@ -73,7 +74,7 @@ export function Header({ user }: { user?: HeaderUser | null }) {
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5')}
+                className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'gap-1.5 shrink-0')}
                 aria-label={t('common.logout')}
               >
                 <LogOut className="h-4 w-4" />
@@ -82,13 +83,13 @@ export function Header({ user }: { user?: HeaderUser | null }) {
             </>
           ) : (
             <>
-              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'hidden sm:inline-flex')}>
+              <Link href="/login" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'shrink-0')}>
                 {t('common.login')}
               </Link>
-              <Link href="/signup/researcher" className={buttonVariants({ size: 'sm' })}>
+              <Link href="/signup/researcher" className={cn(buttonVariants({ size: 'sm' }), 'shrink-0')}>
                 {t('nav.requestQuote')}
               </Link>
-              <Link href="/signup/supplier" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'hidden md:inline-flex')}>
+              <Link href="/signup/supplier" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'shrink-0')}>
                 {t('nav.registerSupplier')}
               </Link>
             </>

@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Search, X, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useI18n } from '@/lib/i18n/context'
 import {
-  CATEGORY_TREE, ITEM_TYPE_LABELS, ITEM_TYPE_ICONS,
+  CATEGORY_TREE, ITEM_TYPE_ICONS, getCatLabel,
   searchCategories,
   type ItemType, type FlatCategory,
 } from '@/lib/categories'
@@ -25,13 +26,14 @@ const ITEM_TYPES = Object.keys(CATEGORY_TREE) as ItemType[]
 function useDebounce<T>(val: T, delay: number): T {
   const [debounced, setDebounced] = useState(val)
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(val), delay)
-    return () => clearTimeout(t)
+    const timer = setTimeout(() => setDebounced(val), delay)
+    return () => clearTimeout(timer)
   }, [val, delay])
   return debounced
 }
 
-export function CategorySearch({ onFilterChange, placeholder = '품목 검색 또는 카테고리 선택', className }: CategorySearchProps) {
+export function CategorySearch({ onFilterChange, placeholder, className }: CategorySearchProps) {
+  const { t, lang } = useI18n()
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [activeType, setActiveType] = useState<ItemType>('reagent')
@@ -39,6 +41,9 @@ export function CategorySearch({ onFilterChange, placeholder = '품목 검색 �
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const debouncedQuery = useDebounce(query, 200)
+
+  const itypeLabel = (type: ItemType) => t(`itype.${type}`)
+  const resolvedPlaceholder = placeholder ?? t('bd.searchPh')
 
   const suggestions = debouncedQuery.length >= 1 ? searchCategories(debouncedQuery) : []
   const isTyping = query.length > 0
@@ -106,16 +111,11 @@ export function CategorySearch({ onFilterChange, placeholder = '품목 검색 �
       >
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
 
-        {/* Selected category chip */}
         {selectedCat && (
           <span className="flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary shrink-0">
             {ITEM_TYPE_ICONS[selectedCat.type]}
             {selectedCat.label}
-            <button
-              type="button"
-              onClick={clearCategory}
-              className="ml-0.5 hover:text-destructive"
-            >
+            <button type="button" onClick={clearCategory} className="ml-0.5 hover:text-destructive">
               <X className="h-3 w-3" />
             </button>
           </span>
@@ -128,7 +128,7 @@ export function CategorySearch({ onFilterChange, placeholder = '품목 검색 �
           onChange={handleQueryChange}
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder={selectedCat ? '추가 검색...' : placeholder}
+          placeholder={selectedCat ? t('catSearch.morePh') : resolvedPlaceholder}
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground min-w-0"
           autoComplete="off"
         />
@@ -144,17 +144,17 @@ export function CategorySearch({ onFilterChange, placeholder = '품목 검색 �
       {open && (
         <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-background shadow-xl overflow-hidden">
 
-          {/* Autocomplete mode: user is typing */}
+          {/* Autocomplete mode */}
           {isTyping && (
             <div>
               {suggestions.length === 0 ? (
                 <div className="px-4 py-3 text-sm text-muted-foreground">
-                  &ldquo;{query}&rdquo;와 일치하는 카테고리 없음
+                  {t('catSearch.noMatch').replace('{query}', query)}
                 </div>
               ) : (
                 <>
                   <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    카테고리 제안
+                    {t('catSearch.suggest')}
                   </div>
                   {suggestions.map(cat => (
                     <button
@@ -177,18 +177,20 @@ export function CategorySearch({ onFilterChange, placeholder = '품목 검색 �
                     className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted text-left"
                   >
                     <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-muted-foreground">&ldquo;{query}&rdquo; 텍스트로 검색</span>
+                    <span className="text-muted-foreground">
+                      {t('catSearch.textSearch').replace('{query}', query)}
+                    </span>
                   </button>
                 </>
               )}
             </div>
           )}
 
-          {/* Browse mode: show category tree */}
+          {/* Browse mode */}
           {!isTyping && (
             <div>
               <div className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                카테고리 탐색
+                {t('catSearch.browse')}
               </div>
 
               {/* Type tabs */}
@@ -206,42 +208,40 @@ export function CategorySearch({ onFilterChange, placeholder = '품목 검색 �
                     )}
                   >
                     <span className="text-base">{ITEM_TYPE_ICONS[type]}</span>
-                    <span className="leading-tight text-center">{ITEM_TYPE_LABELS[type]}</span>
+                    <span className="leading-tight text-center">{itypeLabel(type)}</span>
                   </button>
                 ))}
               </div>
 
-              {/* Subcategories for active type */}
+              {/* Subcategories */}
               <div className="max-h-64 overflow-y-auto py-1">
-                {/* Top-level type shortcut */}
                 <button
                   type="button"
                   onMouseDown={() => selectCategory({
                     code: activeType,
-                    label: ITEM_TYPE_LABELS[activeType],
-                    breadcrumb: '전체',
+                    label: itypeLabel(activeType),
+                    breadcrumb: t('catSearch.all').replace('{type}', ''),
                     type: activeType,
                   })}
                   className="flex w-full items-center justify-between px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5"
                 >
-                  <span>전체 {ITEM_TYPE_LABELS[activeType]}</span>
+                  <span>{t('catSearch.all').replace('{type}', itypeLabel(activeType))}</span>
                   <ChevronRight className="h-3 w-3" />
                 </button>
 
                 {CATEGORY_TREE[activeType].map(node => (
                   <div key={node.code}>
-                    {/* Mid-level: clickable if it has children, otherwise selectable */}
                     <button
                       type="button"
                       onMouseDown={() => selectCategory({
                         code: node.code,
                         label: node.label,
-                        breadcrumb: ITEM_TYPE_LABELS[activeType],
+                        breadcrumb: itypeLabel(activeType),
                         type: activeType,
                       })}
                       className="flex w-full items-center justify-between px-3 py-1.5 text-sm hover:bg-muted text-left"
                     >
-                      <span className="font-medium">{node.label}</span>
+                      <span className="font-medium">{getCatLabel(node, lang)}</span>
                       {node.children && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
                     </button>
 
@@ -251,13 +251,13 @@ export function CategorySearch({ onFilterChange, placeholder = '품목 검색 �
                         type="button"
                         onMouseDown={() => selectCategory({
                           code: child.code,
-                          label: child.label,
-                          breadcrumb: node.label,
+                          label: getCatLabel(child, lang),
+                          breadcrumb: getCatLabel(node, lang),
                           type: activeType,
                         })}
                         className="flex w-full items-center px-6 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground text-left"
                       >
-                        · {child.label}
+                        · {getCatLabel(child, lang)}
                       </button>
                     ))}
                   </div>

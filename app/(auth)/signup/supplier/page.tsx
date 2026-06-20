@@ -558,7 +558,7 @@ export default function SupplierSignupPage() {
           <div className="space-y-2">
             <Label>
               {t('ov.supplyType')} <span className="text-destructive">*</span>
-              <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">(복수 선택 가능)</span>
+              <span className="ml-1.5 text-[11px] font-normal text-muted-foreground">{t('ov.supplyTypeMulti')}</span>
             </Label>
             <div className="grid grid-cols-2 gap-2">
               {(['chemical', 'equipment'] as SupplyType[]).map(st => {
@@ -586,7 +586,7 @@ export default function SupplierSignupPage() {
             {isBothTypes && (
               <div className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-[11px] text-primary flex items-center gap-1.5">
                 <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                화학물질과 장비를 모두 공급하는 사업자로 등록됩니다. 두 유형의 규제 요건이 모두 적용됩니다.
+                {t('ov.supplyBothNote')}
               </div>
             )}
           </div>

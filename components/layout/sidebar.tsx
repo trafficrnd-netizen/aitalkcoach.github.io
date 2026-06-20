@@ -161,7 +161,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         {isMediRole ? (
           <Link
             href={creditsHref}
-            onClick={() => setPendingHref(creditsHref)}
+            onClick={() => { if (!pathname.startsWith(creditsHref)) setPendingHref(creditsHref) }}
             className={cn(
               'block rounded-lg border p-3 transition-colors',
               pathname.startsWith(creditsHref)
@@ -194,7 +194,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
         ) : (
           <Link
             href={creditsHref}
-            onClick={() => setPendingHref(creditsHref)}
+            onClick={() => { if (!pathname.startsWith(creditsHref)) setPendingHref(creditsHref) }}
             className={cn(
               'block rounded-lg border p-3 transition-colors',
               pathname.startsWith(creditsHref)
@@ -214,7 +214,7 @@ export function Sidebar({ role, credits = 0 }: SidebarProps) {
                   </p>
                 </div>
               </div>
-              {pendingHref === creditsHref ? (
+              {pendingHref === creditsHref && !pathname.startsWith(creditsHref) ? (
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
               ) : (
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />

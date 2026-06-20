@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
 import { updateSupplierProfile } from '@/lib/actions/supplier'
-import { ITEM_TYPE_LABELS, ITEM_TYPE_ICONS, CATEGORY_TREE, type ItemType } from '@/lib/categories'
+import { ITEM_TYPE_ICONS, CATEGORY_TREE, getCatLabel, type ItemType } from '@/lib/categories'
 import { cn } from '@/lib/utils'
-import { useT } from '@/lib/i18n/context'
+import { useI18n } from '@/lib/i18n/context'
 import { createClient } from '@/lib/supabase/client'
 import { ShieldCheck, Upload, X, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 
@@ -20,7 +20,6 @@ function initFromSaved(saved: string[]): Set<string> {
   const result = new Set<string>()
   for (const code of saved) {
     if (ITEM_TYPES.includes(code as ItemType)) {
-      // 최상위 타입 → 모든 하위 코드 추가
       for (const node of CATEGORY_TREE[code as ItemType] ?? []) {
         result.add(node.code)
         for (const child of node.children ?? []) result.add(child.code)
@@ -72,11 +71,13 @@ interface SupplierProfile {
 }
 
 export function SupplierProfileForm({ profile }: { profile: SupplierProfile | null }) {
-  const t = useT()
+  const { t, lang } = useI18n()
   const [selectedCats, setSelectedCats] = useState<Set<string>>(
     initFromSaved(profile?.categories ?? [])
   )
   const [expandedTypes, setExpandedTypes] = useState<Set<ItemType>>(new Set(ITEM_TYPES))
+  // 노드(중간 카테고리) 레벨 펼치기 — 기본값: 전부 접힘
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set())
   const [regions, setRegions] = useState<string[]>(profile?.regions ?? [])
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [errorMsg, setErrorMsg] = useState('')
@@ -85,6 +86,26 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
     setSelectedCats(prev => {
       const next = new Set(prev)
       if (next.has(code)) next.delete(code); else next.add(code)
+      return next
+    })
+  }
+
+  function toggleNode(code: string) {
+    setExpandedNodes(prev => {
+      const next = new Set(prev)
+      if (next.has(code)) next.delete(code); else next.add(code)
+      return next
+    })
+  }
+
+  /** 노드 전체 선택/해제 (자신 + 자식) */
+  function toggleNodeSelect(node: { code: string; children?: { code: string }[] }) {
+    const codes = [node.code, ...(node.children?.map(c => c.code) ?? [])]
+    const allSelected = codes.every(c => selectedCats.has(c))
+    setSelectedCats(prev => {
+      const next = new Set(prev)
+      if (allSelected) codes.forEach(c => next.delete(c))
+      else codes.forEach(c => next.add(c))
       return next
     })
   }
@@ -224,12 +245,12 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
 
       <Separator />
 
-      {/* 취급 카테고리 — 연구자 분류체계와 동일 */}
+      {/* 취급 카테고리 */}
       <section className="space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div>
             <h2 className="font-semibold">{t('spf.categorySection')}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">공급 가능한 품목을 구체적으로 선택해주세요.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t('spf.categoryDesc')}</p>
           </div>
           <div className="flex gap-1.5 shrink-0">
             <button
@@ -237,14 +258,14 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
               onClick={selectAll}
               className="rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary hover:bg-primary/10 transition-colors"
             >
-              전체 선택
+              {t('spf.selectAll')}
             </button>
             <button
               type="button"
               onClick={deselectAll}
               className="rounded-md border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
             >
-              전체 해제
+              {t('spf.deselectAll')}
             </button>
           </div>
         </div>
@@ -267,7 +288,7 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
                     className="flex items-center gap-1.5 flex-1 text-left"
                   >
                     <span className="text-base">{ITEM_TYPE_ICONS[type]}</span>
-                    <span className="text-sm font-semibold">{ITEM_TYPE_LABELS[type]}</span>
+                    <span className="text-sm font-semibold">{t(`itype.${type}`)}</span>
                     {selectedCount > 0 && (
                       <span className="ml-1 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                         {selectedCount}/{typeCodes.length}
@@ -288,22 +309,73 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
                         : 'border-border text-muted-foreground hover:border-primary/40 hover:text-primary'
                     )}
                   >
-                    {allTypeSelected ? '유형 해제' : '유형 전체'}
+                    {allTypeSelected ? t('spf.typeDeselect') : t('spf.typeSelectAll')}
                   </button>
                 </div>
 
                 {/* 하위 카테고리 */}
                 {isExpanded && (
-                  <div className="p-3 space-y-3">
-                    {nodes.map(node => (
-                      <div key={node.code}>
-                        {node.children ? (
-                          /* 자식이 있는 중간 노드 */
-                          <div className="space-y-1.5">
-                            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
-                              {node.label}
-                            </p>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pl-1">
+                  <div className="p-2 space-y-1">
+                    {nodes.map(node => {
+                      if (!node.children) {
+                        /* 리프 노드 */
+                        return (
+                          <div key={node.code} className="flex items-center gap-2 px-2 py-1.5">
+                            <Checkbox
+                              id={`cat-${node.code}`}
+                              checked={selectedCats.has(node.code)}
+                              onCheckedChange={() => toggleCat(node.code)}
+                            />
+                            <label htmlFor={`cat-${node.code}`} className="text-xs cursor-pointer">
+                              {getCatLabel(node, lang)}
+                            </label>
+                          </div>
+                        )
+                      }
+
+                      /* 중간 노드 — 접기/펼치기 */
+                      const nodeExpanded = expandedNodes.has(node.code)
+                      const nodeChildCodes = node.children.map(c => c.code)
+                      const nodeSelectedCount = nodeChildCodes.filter(c => selectedCats.has(c)).length
+                      const nodeAllSelected = nodeChildCodes.every(c => selectedCats.has(c))
+
+                      return (
+                        <div key={node.code} className="rounded-md border border-border/60 overflow-hidden">
+                          {/* 노드 헤더 */}
+                          <div className="flex items-center gap-1.5 bg-muted/20 px-2 py-1.5">
+                            <button
+                              type="button"
+                              onClick={() => toggleNode(node.code)}
+                              className="flex items-center gap-1.5 flex-1 text-left min-w-0"
+                            >
+                              {nodeExpanded
+                                ? <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                : <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
+                              }
+                              <span className="text-[11px] font-semibold text-foreground truncate">{getCatLabel(node, lang)}</span>
+                              {nodeSelectedCount > 0 && (
+                                <span className="shrink-0 rounded-full bg-primary/15 px-1 py-0 text-[9px] font-medium text-primary">
+                                  {nodeSelectedCount}/{nodeChildCodes.length}
+                                </span>
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleNodeSelect(node)}
+                              className={cn(
+                                'shrink-0 rounded px-1.5 py-0.5 text-[9px] font-medium border transition-colors',
+                                nodeAllSelected
+                                  ? 'border-primary/40 bg-primary/10 text-primary'
+                                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-primary'
+                              )}
+                            >
+                              {nodeAllSelected ? t('spf.nodeDeselect') : t('spf.nodeSelectAll')}
+                            </button>
+                          </div>
+
+                          {/* 자식 항목 — 펼쳐진 경우만 표시 */}
+                          {nodeExpanded && (
+                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 px-3 py-2">
                               {node.children.map(child => (
                                 <div key={child.code} className="flex items-center gap-2">
                                   <Checkbox
@@ -312,27 +384,15 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
                                     onCheckedChange={() => toggleCat(child.code)}
                                   />
                                   <label htmlFor={`cat-${child.code}`} className="text-xs cursor-pointer leading-tight">
-                                    {child.label}
+                                    {getCatLabel(child, lang)}
                                   </label>
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        ) : (
-                          /* 리프 노드 */
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id={`cat-${node.code}`}
-                              checked={selectedCats.has(node.code)}
-                              onCheckedChange={() => toggleCat(node.code)}
-                            />
-                            <label htmlFor={`cat-${node.code}`} className="text-xs cursor-pointer">
-                              {node.label}
-                            </label>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -342,7 +402,7 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
 
         {selectedCats.size > 0 && (
           <p className="text-xs text-muted-foreground">
-            총 <span className="font-medium text-foreground">{selectedCats.size}</span>개 카테고리 선택됨
+            {t('spf.selectedCount').replace('{n}', String(selectedCats.size))}
           </p>
         )}
       </section>
@@ -373,10 +433,10 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
         <div>
           <h2 className="font-semibold flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-secondary" />
-            화학물질 취급허가증
+            {t('spf.permitTitle')}
           </h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            REACH·화관법 규제물질 취급 허가증을 등록하면 해당 물질 입찰 시 신뢰도 배지가 표시됩니다.
+            {t('spf.permitDesc')}
           </p>
         </div>
 
@@ -384,14 +444,14 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
           <div className="flex items-center gap-3 rounded-lg border border-secondary/30 bg-secondary/5 px-4 py-3">
             <ShieldCheck className="h-5 w-5 text-secondary shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-secondary">취급허가증 등록됨</p>
+              <p className="text-sm font-medium text-secondary">{t('spf.permitRegistered')}</p>
               <a
                 href={permitUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-muted-foreground underline flex items-center gap-0.5 mt-0.5 truncate"
               >
-                파일 보기 <ExternalLink className="h-3 w-3 shrink-0" />
+                {t('spf.permitView')} <ExternalLink className="h-3 w-3 shrink-0" />
               </a>
             </div>
             <button
@@ -411,7 +471,7 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
               className="flex items-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground hover:border-secondary/50 hover:bg-secondary/5 transition-colors disabled:opacity-50"
             >
               <Upload className="h-4 w-4" />
-              {permitUploading ? '업로드 중...' : '허가증 업로드 (PDF / 이미지 · 최대 5MB)'}
+              {permitUploading ? t('spf.permitUploading') : t('spf.permitUpload')}
             </button>
             <input
               ref={permitFileRef}
@@ -429,19 +489,19 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
 
       {/* 구독 현황 (읽기 전용) */}
       <section className="space-y-2">
-        <h2 className="font-semibold">구독 현황</h2>
+        <h2 className="font-semibold">{t('spf.planSection')}</h2>
         <div className="flex items-center gap-4 rounded-lg border border-border bg-muted p-4">
           <div>
-            <div className="text-sm text-muted-foreground">현재 플랜</div>
+            <div className="text-sm text-muted-foreground">{t('spf.currentPlan')}</div>
             <div className="font-semibold capitalize">{profile?.plan ?? 'free'}</div>
           </div>
           <div>
-            <div className="text-sm text-muted-foreground">잔여 크레딧</div>
+            <div className="text-sm text-muted-foreground">{t('spf.credits')}</div>
             <div className="font-semibold">{profile?.credits ?? 0}</div>
           </div>
           {profile?.early_bird && (
             <div className="ml-auto rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              얼리버드
+              {t('common.earlyBird')}
             </div>
           )}
         </div>
@@ -449,9 +509,9 @@ export function SupplierProfileForm({ profile }: { profile: SupplierProfile | nu
 
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={status === 'saving'}>
-          {status === 'saving' ? '저장 중...' : '저장'}
+          {status === 'saving' ? t('common.saving') : t('common.save')}
         </Button>
-        {status === 'saved' && <span className="text-sm text-primary">저장되었습니다.</span>}
+        {status === 'saved' && <span className="text-sm text-primary">{t('common.saved')}</span>}
         {status === 'error' && <span className="text-sm text-destructive">{errorMsg}</span>}
       </div>
     </form>

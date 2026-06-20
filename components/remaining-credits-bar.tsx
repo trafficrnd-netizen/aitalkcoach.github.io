@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Coins, Gauge, ChevronRight } from 'lucide-react'
+import { useI18n } from '@/lib/i18n/context'
 
 interface CreditData {
   role: 'researcher' | 'supplier'
@@ -16,24 +17,17 @@ interface CreditData {
   }
 }
 
-/**
- * 페이지 하단에 표시되는 잔여 크레딧 · 무료 한도 바.
- * /api/me/credits 에서 데이터를 가져와 표시.
- */
 export function RemainingCreditsBar() {
+  const { t, lang } = useI18n()
   const [data, setData] = useState<CreditData | null>(null)
 
   useEffect(() => {
     let active = true
     fetch('/api/me/credits')
       .then(r => (r.ok ? r.json() : null))
-      .then(d => {
-        if (active && d && !d.error) setData(d)
-      })
+      .then(d => { if (active && d && !d.error) setData(d) })
       .catch(() => {})
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   if (!data) return null
@@ -41,6 +35,7 @@ export function RemainingCreditsBar() {
   const { credits, quota, role } = data
   const creditsHref = `/${role}/credits`
   const exhausted = quota.remaining === 0
+  const action = t(`cr.action.${role}`)
 
   return (
     <div className="mt-8 rounded-xl border border-border bg-card p-4">
@@ -52,9 +47,9 @@ export function RemainingCreditsBar() {
               <Coins className="h-4 w-4 text-accent-foreground" />
             </span>
             <div>
-              <p className="text-[11px] leading-tight text-muted-foreground">보유 크레딧</p>
+              <p className="text-[11px] leading-tight text-muted-foreground">{t('cr.balance')}</p>
               <p className="text-sm font-bold leading-tight text-foreground">
-                {credits.toLocaleString()} P
+                {credits.toLocaleString(lang === 'en' ? 'en-US' : 'ko-KR')} P
               </p>
             </div>
           </div>
@@ -63,39 +58,32 @@ export function RemainingCreditsBar() {
 
           {/* 무료 한도 */}
           <div className="flex items-center gap-2">
-            <span
-              className={`flex h-9 w-9 items-center justify-center rounded-full ${
-                exhausted ? 'bg-destructive/15' : 'bg-primary/10'
-              }`}
-            >
-              <Gauge
-                className={`h-4 w-4 ${exhausted ? 'text-destructive' : 'text-primary'}`}
-              />
+            <span className={`flex h-9 w-9 items-center justify-center rounded-full ${exhausted ? 'bg-destructive/15' : 'bg-primary/10'}`}>
+              <Gauge className={`h-4 w-4 ${exhausted ? 'text-destructive' : 'text-primary'}`} />
             </span>
             <div>
               <p className="text-[11px] leading-tight text-muted-foreground">
-                이번 주 무료 {quota.actionLabel}
+                {t('cr.weeklyQuota').replace('{action}', action)}
               </p>
               <p className="text-sm font-bold leading-tight text-foreground">
                 {quota.remaining}
-                <span className="font-normal text-muted-foreground"> / {quota.freeQuota}회 남음</span>
+                <span className="font-normal text-muted-foreground">
+                  {' '}/ {quota.freeQuota} {t('cr.timesLeft').replace('{n}', '')}
+                </span>
               </p>
             </div>
           </div>
         </div>
 
-        <Link
-          href={creditsHref}
-          className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-        >
-          크레딧 자세히 보기
+        <Link href={creditsHref} className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+          {t('cr.viewDetails')}
           <ChevronRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 
       {exhausted && (
         <p className="mt-3 rounded-md bg-destructive/5 px-3 py-2 text-xs text-destructive">
-          이번 주 무료 한도를 모두 사용했습니다. 추가 {quota.actionLabel} 시 크레딧 1P가 사용됩니다.
+          {t('cr.exhausted').replace('{action}', action)}
         </p>
       )}
     </div>
