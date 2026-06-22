@@ -122,7 +122,8 @@ function EmotionCard({ data }) {
 function getEmoji(emotion) {
   const map = {
     '긍정적': '😊',
-    '中性': '😐',
+    '중립': '😐',
+    '중성': '😐',
     '부정적': '😢',
     '설렘': '🥰',
     '기쁨': '😄',

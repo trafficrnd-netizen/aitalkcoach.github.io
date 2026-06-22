@@ -230,7 +230,7 @@ function PremiumUpgradeBanner() {
       <Card.Content style={styles.upgradeContent}>
         <Text style={styles.upgradeEmoji}>👑</Text>
         <View style={styles.upgradeText}>
-          <Text style={styles.upgradeTitle}>모든 기능解锁</Text>
+          <Text style={styles.upgradeTitle}>모든 기능 잠금해제</Text>
           <Text style={styles.upgradeSubtitle}>프리미엄 구독으로 무제한 분석</Text>
         </View>
       </Card.Content>

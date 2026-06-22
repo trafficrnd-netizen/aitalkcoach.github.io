@@ -4,7 +4,7 @@
  * 플로팅 버블 탭 시 클립보드 내용을 분석하는 오버레이 화면
  */
 
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Button, IconButton, Card, ActivityIndicator } from 'react-native-paper';
 import { useState, useCallback, useEffect } from 'react';
@@ -15,6 +15,11 @@ import { useAppStore } from '../store/appStore';
 
 export default function FloatingAnalysisScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  // 우선순위: route params.text > store.currentAnalysisText > 클립보드
+  const paramText = typeof params.text === 'string' ? params.text : null;
+  const storeText = useAppStore((s) => s.currentAnalysisText);
+  const incomingText = paramText || storeText;
   const { canUse, incrementUsage } = useAppStore();
 
   const [clipboardText, setClipboardText] = useState('');
@@ -22,9 +27,13 @@ export default function FloatingAnalysisScreen() {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
 
-  // ===== 클립보드 읽기 =====
+  // ===== 텍스트 읽기: params.text > store > 클립보드 =====
   useEffect(() => {
-    const loadClipboard = async () => {
+    const loadText = async () => {
+      if (incomingText && incomingText.trim().length > 0) {
+        setClipboardText(incomingText);
+        return;
+      }
       try {
         const text = await Clipboard.getStringAsync();
         if (text && text.trim().length > 0) {
@@ -36,8 +45,8 @@ export default function FloatingAnalysisScreen() {
         setError('클립보드를 읽을 수 없습니다.');
       }
     };
-    loadClipboard();
-  }, []);
+    loadText();
+  }, [incomingText]);
 
   // ===== 분석 실행 =====
   const handleAnalyze = useCallback(async () => {
@@ -102,7 +111,7 @@ export default function FloatingAnalysisScreen() {
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <IconButton icon="close" onPress={handleClose} />
+        <IconButton icon="close" onPress={handleClose} iconColor="#1F2937" />
         <Text style={styles.headerTitle}>클립보드 분석</Text>
         <View style={{ width: 48 }} />
       </View>
@@ -213,7 +222,7 @@ export default function FloatingAnalysisScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111827',
+    backgroundColor: '#F9FAFB',
   },
   header: {
     flexDirection: 'row',
@@ -221,13 +230,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingTop: 48,
     paddingBottom: 8,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   headerTitle: {
     flex: 1,
     fontSize: 18,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111827',
     textAlign: 'center',
   },
   content: {
@@ -240,26 +251,27 @@ const styles = StyleSheet.create({
   previewCard: {
     borderRadius: 16,
     marginBottom: 16,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#FFFFFF',
   },
   previewLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: '#374151',
     marginBottom: 8,
   },
   previewText: {
     fontSize: 13,
-    color: '#E5E7EB',
+    color: '#1F2937',
     lineHeight: 20,
   },
   errorCard: {
-    borderColor: '#EF4444',
+    borderColor: '#FCA5A5',
     borderWidth: 1,
+    backgroundColor: '#FEF2F2',
   },
   errorText: {
     fontSize: 14,
-    color: '#EF4444',
+    color: '#B91C1C',
     textAlign: 'center',
     marginBottom: 12,
   },
@@ -269,12 +281,12 @@ const styles = StyleSheet.create({
   resultCard: {
     borderRadius: 16,
     marginBottom: 12,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#FFFFFF',
   },
   resultTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#9CA3AF',
+    color: '#6B7280',
     marginBottom: 8,
   },
   resultEmoji: {
@@ -284,18 +296,18 @@ const styles = StyleSheet.create({
   resultValue: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: '#111827',
     marginBottom: 4,
   },
   resultDesc: {
     fontSize: 13,
-    color: '#9CA3AF',
+    color: '#4B5563',
     lineHeight: 20,
   },
   replyItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#374151',
+    backgroundColor: '#F3F4F6',
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -317,7 +329,7 @@ const styles = StyleSheet.create({
   replyText: {
     flex: 1,
     fontSize: 14,
-    color: '#FFFFFF',
+    color: '#1F2937',
     lineHeight: 22,
   },
   footer: {
@@ -327,7 +339,9 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     paddingBottom: 32,
-    backgroundColor: '#1F2937',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
   },
   analyzeButton: {
     borderRadius: 12,

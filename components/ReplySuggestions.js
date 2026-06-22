@@ -134,7 +134,7 @@ function ReplySuggestions({ data }) {
           <Text style={styles.tipTitle}>💡 답장 사용 팁</Text>
           <Text style={styles.tipText}>
             • 상황에 맞게 내용을 수정해서 보내세요{'\n'}
-            • 너무 완벽한 답장은有些不自然해 보일 수 있어요{'\n'}
+            • 너무 완벽한 답장은 어색해 보일 수 있어요{'\n'}
             • 본인의 말투를 섞어 쓰면 더 자연스럽습니다{'\n'}
             • 감정 이모지를 추가하면 톤이 따뜻해집니다
           </Text>
