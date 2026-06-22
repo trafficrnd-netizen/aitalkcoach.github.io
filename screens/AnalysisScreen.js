@@ -341,7 +341,19 @@ function AnalysisScreen({ onNavigate, onBack, route }) {
 // ===== 요약 탭 =====
 function SummaryTab({ result, mode }) {
   if (mode === 'work') {
-    return <WorkSummaryTab result={result?.work_summary} integrated={result?.work_integrated} actions={result?.work_actions} />;
+    // work 모드는 항상 결과 객체가 있어야 함 (없으면 빈 구조로 fallback)
+    const safeResult = {
+      work_summary: result?.work_summary || {
+        summary: '대화 내용을 분석할 수 없어요.',
+        key_points: [],
+        decisions: [],
+        open_questions: [],
+        schedules: [],
+      },
+      work_integrated: result?.work_integrated || null,
+      work_actions: result?.work_actions || [],
+    };
+    return <WorkSummaryTab result={safeResult.work_summary} integrated={safeResult.work_integrated} actions={safeResult.work_actions} />;
   }
 
   const comprehensive = result?.comprehensive || result?.interest;
@@ -433,7 +445,7 @@ function WorkSummaryTab({ result, integrated, actions }) {
     return (
       <Card style={styles.card}>
         <Card.Content>
-          <Text style={styles.placeholder}>대화 내용을 정리하는 중이에요...</Text>
+          <Text style={styles.placeholder}>📋 대화 내용을 정리하고 있어요...</Text>
         </Card.Content>
       </Card>
     );
@@ -532,7 +544,7 @@ function WorkScheduleTab({ result }) {
     return (
       <Card style={styles.card}>
         <Card.Content>
-          <Text style={styles.placeholder}>일정을 정리하는 중이에요...</Text>
+          <Text style={styles.placeholder}>📅 일정을 분석 중이에요...</Text>
         </Card.Content>
       </Card>
     );
@@ -639,7 +651,7 @@ function WorkIntegratedTab({ summary, integrated, actions }) {
     return (
       <Card style={styles.card}>
         <Card.Content>
-          <Text style={styles.placeholder}>통합 분석을 만드는 중이에요...</Text>
+          <Text style={styles.placeholder}>🧩 통합 분석을 만들고 있어요...</Text>
         </Card.Content>
       </Card>
     );

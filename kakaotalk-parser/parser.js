@@ -33,7 +33,7 @@ function parseDateTime(dateStr, timeStr) {
   if (!dateMatch) return null;
 
   const year = parseInt(dateMatch[1]);
-  const month = parseInt(dateMatch[2]) - 1; // JS는 0부터月开始
+  const month = parseInt(dateMatch[2]) - 1; // JS의 month는 0부터 시작
   const day = parseInt(dateMatch[3]);
 
   // 시간 파싱
@@ -141,7 +141,11 @@ export function parseKakaoTalkFile(content) {
         const fullLine = `${result.currentDate} ${line}`;
 
         // 메시지 추출
-        const messagePart = line.replace(PATTERNS.timePattern, '').trim();
+        // [FIX] "[오후 3:30] 이름 : 메시지" 같은 대괄호 형식도 처리
+        //   → "오후 3:30" 제거 후 "[] 이름 : 메시지" → "[", "]" 도 제거
+        let messagePart = line.replace(PATTERNS.timePattern, '').trim();
+        // 양 끝 [ ] 와 공백 제거 (예: "[]", " [ ", " ] ")
+        messagePart = messagePart.replace(/^[\s\[\]]+/, '').replace(/[\s\[\]]+$/, '').trim();
 
         if (messagePart) {
           // 내 메시지 여부
@@ -366,27 +370,6 @@ export function toAnalysisText(chatData) {
   return lines.join('\n');
 }
 
-// ===== 테스트 코드 (직접 실행 시) =====
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
-if (isMainModule) {
-  const testContent = `
-2024년 1월 15일 월요일
-오후 3:30 김철수 : 안녕 오늘 뭐 해?
-오후 3:31 이영희(You) : 아무것도 안 해~ 집에서 쉬고 있어 ㅎㅎ
-오후 3:32 김철수 : 나 오늘 일 끝났어. 술 한 잔 할까?
-오후 3:35 이영희(You) : 좋은데? 어디 가자
-오후 3:36 김철수 : 그럼 네 집 앞 편의점으로 7시에?
-오후 3:37 이영희(You) : 응 좋아!
-`;
-
-  console.log('=== 테스트 파싱 ===');
-  const result = parseKakaoTalkFile(testContent);
-  console.log(JSON.stringify(result, null, 2));
-
-  console.log('\n=== 유효성 검사 ===');
-  const validation = validateChatData(result);
-  console.log(validation);
-
-  console.log('\n=== AI 분석용 텍스트 ===');
-  console.log(toAnalysisText(result));
-}
+// ===== 테스트 코드는 별도 파일로 분리됨 (parser.test.js) =====
+// RN 번들에서 import.meta 사용 불가하므로 직접 실행 테스트 제거
+// `node src/kakaotalk-parser/parser.test.js` 로 테스트 실행 가능

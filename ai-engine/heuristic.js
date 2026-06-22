@@ -172,28 +172,62 @@ class HeuristicAnalyzer {
     // 사전 통계 계산
     this.stats = this.computeStats();
 
+    // [FIX] 각 분석을 try-catch 로 감싸서 한 단계 실패가 전체 분석을 죽이지 않게.
+    //       실패 시 빈 구조체로 fallback → UI에서 graceful empty state 가능.
+    const safeRun = (name, fn, emptyResult) => {
+      try {
+        return fn();
+      } catch (e) {
+        console.warn(`[HeuristicAnalyzer] ${name} 실패:`, e?.message || e);
+        return emptyResult;
+      }
+    };
+
     // 각 분석 실행
-    if (types.includes('emotion')) results.emotion = this.analyzeEmotion();
-    if (types.includes('interest')) results.interest = this.analyzeInterest();
-    if (types.includes('advice')) results.advice = this.analyzeAdvice();
-    if (types.includes('replies')) results.replies = this.generateReplySuggestions();
+    if (types.includes('emotion')) results.emotion = safeRun('analyzeEmotion', () => this.analyzeEmotion(), null);
+    if (types.includes('interest')) results.interest = safeRun('analyzeInterest', () => this.analyzeInterest(), null);
+    if (types.includes('advice')) results.advice = safeRun('analyzeAdvice', () => this.analyzeAdvice(), null);
+    if (types.includes('replies')) results.replies = safeRun('generateReplySuggestions', () => this.generateReplySuggestions(), null);
 
     // === 업무분석 모드 ===
-    if (types.includes('work_summary')) results.work_summary = this.analyzeWorkSummary();
-    if (types.includes('work_integrated')) results.work_integrated = this.analyzeWorkIntegrated();
-    if (types.includes('work_actions')) results.work_actions = this.analyzeWorkActions();
+    if (types.includes('work_summary')) results.work_summary = safeRun('analyzeWorkSummary', () => this.analyzeWorkSummary(), {
+      summary: '대화 내용을 정리할 수 없어요.',
+      key_points: [],
+      decisions: [],
+      open_questions: [],
+      schedules: [],
+      date_range: null,
+      timeline: [],
+    });
+    if (types.includes('work_integrated')) results.work_integrated = safeRun('analyzeWorkIntegrated', () => this.analyzeWorkIntegrated(), {
+      themes: [],
+      theme_quotes: {},
+      overall_tone: '',
+      tone_evidence: '',
+      collaboration_signals: [],
+      risks: [],
+      risk_quotes: {},
+    });
+    if (types.includes('work_actions')) results.work_actions = safeRun('analyzeWorkActions', () => this.analyzeWorkActions(), []);
 
     // === 빠른 조언 모드 ===
     if (types.includes('quick_advice')) {
-      results.work_summary = { summary: this.messages.map(m => m.content).join(' ').slice(0, 400) };
-      results.quick_advice = this.analyzeQuickAdvice();
+      results.work_summary = safeRun('quick_work_summary', () => ({
+        summary: this.messages.map(m => m.content).join(' ').slice(0, 400),
+      }), { summary: '' });
+      results.quick_advice = safeRun('analyzeQuickAdvice', () => this.analyzeQuickAdvice(), {
+        headline: '한 줄 조언',
+        advice: '조언을 만드는 중 문제가 생겼어요.',
+        tone: 'neutral',
+        emoji: '🤔',
+      });
     }
 
     // 종합
-    results.comprehensive = this.buildComprehensive(results);
+    results.comprehensive = safeRun('buildComprehensive', () => this.buildComprehensive(results), null);
 
     // 메시지별 분석 (핵심)
-    results.messageAnalysis = this.analyzeMessages();
+    results.messageAnalysis = safeRun('analyzeMessages', () => this.analyzeMessages(), []);
 
     // 메타데이터
     results.meta = {

@@ -65,8 +65,22 @@ function extractMessages(rawText) {
     .map((l) => (typeof l === 'string' ? l.trim() : ''))
     .filter(Boolean);
 
+  // [FIX] 줄 단위 fallback 에서도 "[오후 3:30]" 같은 시간 prefix / [bracket] 정리
+  //   클립보드에서 복사한 텍스트에 시간 prefix가 남아있는 경우
+  //   (예: "[오후 3:30] 김철수 : 안녕?" → sender "[] 김철수" 가 되는 문제)
+  const cleanLine = (line) => {
+    let s = line;
+    // 앞쪽 [오전/오후 H:MM] 또는 [HH:MM] 형식 제거
+    s = s.replace(/^\s*\[[^\]]*?(\d{1,2})[:시](\d{1,2})?분?[^\]]*?\]\s*/, '');
+    // 양 끝 [ ] 잔여물 제거
+    s = s.replace(/^[\s\[\]]+/, '').replace(/[\s\[\]]+$/, '').trim();
+    return s;
+  };
+
   return lines.map((line, i) => {
-    const match = line.match(/^([^:]+?)\s*:\s*(.+)$/);
+    const cleaned = cleanLine(line);
+    if (!cleaned) return null;
+    const match = cleaned.match(/^([^:]+?)\s*:\s*(.+)$/);
     if (match) {
       return {
         id: `l-${i}`,
@@ -74,18 +88,18 @@ function extractMessages(rawText) {
         content: match[2].trim(),
         timestamp: null,
         isFromMe: false,
-        raw: line,
+        raw: cleaned,
       };
     }
     return {
       id: `l-${i}`,
       sender: '메시지',
-      content: line,
+      content: cleaned,
       timestamp: null,
       isFromMe: false,
-      raw: line,
+      raw: cleaned,
     };
-  });
+  }).filter(Boolean);
 }
 
 function formatTime(ts) {
