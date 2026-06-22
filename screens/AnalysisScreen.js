@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 분석 결과 스크린
  *
  * AI 분석 결과를 모드별로 보여주고 추천 답장 / 통합 조언을 제공.
@@ -567,7 +567,7 @@ function WorkScheduleTab({ result }) {
 
   return (
     <View>
-      {/* 헤더 */}
+      {/* 헤더 + 결정 분포 요약 */}
       <Card style={styles.heroCard}>
         <Card.Content>
           <Text style={styles.heroLabel}>🗓️ 일정 {schedules.length}건</Text>
@@ -576,6 +576,46 @@ function WorkScheduleTab({ result }) {
               ? `${date_range.start} ~ ${date_range.end}`
               : '대화에서 언급된 시간/장소를 정리했어요'}
           </Text>
+          {(() => {
+            const dist = (schedules || []).reduce(
+              (acc, s) => {
+                const d = s.decision || 'proposed';
+                acc[d] = (acc[d] || 0) + 1;
+                return acc;
+              },
+              { confirmed: 0, pending: 0, declined: 0, proposed: 0 },
+            );
+            const total = schedules.length;
+            const items = [
+              { key: 'confirmed', label: '확정', icon: '✅', bg: '#D1FAE5', fg: '#065F46' },
+              { key: 'pending',   label: '미정', icon: '⏳', bg: '#FEF3C7', fg: '#92400E' },
+              { key: 'proposed',  label: '제안', icon: '💡', bg: '#DBEAFE', fg: '#1E40AF' },
+              { key: 'declined',  label: '취소', icon: '❌', bg: '#FEE2E2', fg: '#991B1B' },
+            ];
+            return (
+              <View style={styles.scheduleSummaryRow}>
+                {items.map((it) => {
+                  const n = dist[it.key] || 0;
+                  if (n === 0) return null;
+                  return (
+                    <View
+                      key={it.key}
+                      style={[styles.scheduleSummaryChip, { backgroundColor: it.bg }]}
+                    >
+                      <Text style={[styles.scheduleSummaryText, { color: it.fg }]}>
+                        {it.icon} {it.label} {n}
+                      </Text>
+                    </View>
+                  );
+                })}
+                {total > 0 && (
+                  <Text style={styles.scheduleSummaryFootnote}>
+                    · 총 {total}건 중 확정 {dist.confirmed}, 미정 {dist.pending}, 제안 {dist.proposed}, 취소 {dist.declined}
+                  </Text>
+                )}
+              </View>
+            );
+          })()}
         </Card.Content>
       </Card>
 
@@ -1071,7 +1111,7 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.textSecondary,
     marginTop: spacing.sm,
-    lineHeight: typography.lineHeight.relaxed * typography.size.sm,
+    lineHeight: 20,
   },
   cardFooterNote: {
     fontSize: typography.size.xs,
@@ -1124,7 +1164,7 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.textSecondary,
     fontStyle: 'italic',
-    lineHeight: typography.lineHeight.relaxed * typography.size.sm,
+    lineHeight: 20,
   },
   quoteFrom: {
     fontSize: typography.size.xs,
@@ -1157,6 +1197,31 @@ const styles = StyleSheet.create({
   },
   scheduleTitleRow: {
     flexDirection: 'row',
+  },
+  scheduleSummaryRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 6,
+  },
+  scheduleSummaryChip: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  scheduleSummaryText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+  },
+  scheduleSummaryFootnote: {
+    fontSize: typography.size.xs,
+    color: colors.textSecondary,
+    marginLeft: 4,
+    marginTop: 2,
+    flexShrink: 1,
+  },
+  premiumBanner: {
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.sm,
@@ -1186,7 +1251,7 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.textSecondary,
     fontStyle: 'italic',
-    lineHeight: typography.lineHeight.relaxed * typography.size.sm,
+    lineHeight: 20,
   },
   scheduleQuoteFrom: {
     fontSize: typography.size.xs,
