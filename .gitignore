@@ -55,6 +55,9 @@ decode_sourcemap.cjs
 # screenshots / screen recordings
 screen_*.png
 
+# uiautomator dump (디버깅용 임시)
+ui*.xml
+
 # local dev reports
 AI*.html
 AI*.md
