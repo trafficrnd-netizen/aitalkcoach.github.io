@@ -322,7 +322,12 @@ export {
 };
 
 // ===== 테스트 코드 =====
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+// RN Metro 환경 호환: import.meta / process.argv 둘 다 안전하게 처리
+const isMainModule = typeof process !== 'undefined' &&
+                      typeof process.argv !== 'undefined' &&
+                      process.argv[1] != null &&
+                      (process.argv[1].endsWith('prompts.js') ||
+                       process.argv[1].endsWith('prompts'));
 if (isMainModule) {
   console.log('=== Prompt Test ===');
   const testConversation = `
