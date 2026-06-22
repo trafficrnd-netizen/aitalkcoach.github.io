@@ -557,7 +557,7 @@ function WorkScheduleTab({ result }) {
       <Card style={styles.card}>
         <Card.Content>
           <Text style={styles.placeholder}>
-            🗓️ 이 대화에서 확정된 일정이 없어요.{'\n'}
+            🗓️ 이 대화에서 언급된 일정이 없어요.{'\n'}
             시간/장소/만남 관련 메시지가 더 있으면 자동으로 리스트업돼요.
           </Text>
         </Card.Content>
@@ -580,43 +580,63 @@ function WorkScheduleTab({ result }) {
       </Card>
 
       {/* 일정 리스트 */}
-      {schedules.map((s, i) => (
-        <Card key={i} style={styles.card}>
-          <Card.Content>
-            <View style={styles.scheduleHeader}>
-              <View style={[styles.scheduleBadge, getScheduleBadgeStyle(s.type)]}>
-                <Text style={styles.scheduleBadgeText}>
-                  {getScheduleTypeIcon(s.type)}
-                </Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.scheduleTitle}>
-                  {s.title || s.description || '일정'}
-                </Text>
-                {s.time && (
-                  <Text style={styles.scheduleMeta}>⏰ {s.time}</Text>
-                )}
-                {s.location && (
-                  <Text style={styles.scheduleMeta}>📍 {s.location}</Text>
-                )}
-                {s.participants && s.participants.length > 0 && (
-                  <Text style={styles.scheduleMeta}>
-                    👥 {s.participants.join(', ')}
+      {schedules.map((s, i) => {
+        const decisionMeta = getScheduleDecisionMeta(s.decision);
+        return (
+          <Card key={i} style={styles.card}>
+            <Card.Content>
+              <View style={styles.scheduleHeader}>
+                <View style={[styles.scheduleBadge, getScheduleBadgeStyle(s.type)]}>
+                  <Text style={styles.scheduleBadgeText}>
+                    {getScheduleTypeIcon(s.type)}
                   </Text>
-                )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.scheduleTitleRow}>
+                    <Text style={styles.scheduleTitle} numberOfLines={1}>
+                      {s.title || s.description || '일정'}
+                    </Text>
+                    <View
+                      style={[
+                        styles.scheduleDecisionBadge,
+                        { backgroundColor: decisionMeta.bg },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.scheduleDecisionText,
+                          { color: decisionMeta.fg },
+                        ]}
+                      >
+                        {decisionMeta.icon} {decisionMeta.label}
+                      </Text>
+                    </View>
+                  </View>
+                  {s.time && (
+                    <Text style={styles.scheduleMeta}>⏰ {s.time}</Text>
+                  )}
+                  {s.location && (
+                    <Text style={styles.scheduleMeta}>📍 {s.location}</Text>
+                  )}
+                  {s.participants && s.participants.length > 0 && (
+                    <Text style={styles.scheduleMeta}>
+                      👥 {s.participants.join(', ')}
+                    </Text>
+                  )}
+                </View>
               </View>
-            </View>
-            {s.quote && (
-              <View style={styles.scheduleQuote}>
-                <Text style={styles.scheduleQuoteText}>"{s.quote}"</Text>
-                {s.from && (
-                  <Text style={styles.scheduleQuoteFrom}>— {s.from}</Text>
-                )}
-              </View>
-            )}
-          </Card.Content>
-        </Card>
-      ))}
+              {s.quote && (
+                <View style={styles.scheduleQuote}>
+                  <Text style={styles.scheduleQuoteText}>"{s.quote}"</Text>
+                  {s.from && (
+                    <Text style={styles.scheduleQuoteFrom}>— {s.from}</Text>
+                  )}
+                </View>
+              )}
+            </Card.Content>
+          </Card>
+        );
+      })}
     </View>
   );
 }
@@ -629,6 +649,22 @@ function getScheduleTypeIcon(type) {
     case 'reminder': return '🔔';
     case 'travel': return '✈️';
     default: return '📌';
+  }
+}
+
+// [신규] 결정여부 라벨/아이콘/색상
+function getScheduleDecisionMeta(decision) {
+  switch (decision) {
+    case 'confirmed':
+      return { label: '확정', icon: '✅', bg: '#D1FAE5', fg: '#065F46' };
+    case 'pending':
+      return { label: '미정', icon: '⏳', bg: '#FEF3C7', fg: '#92400E' };
+    case 'declined':
+      return { label: '취소/연기', icon: '❌', bg: '#FEE2E2', fg: '#991B1B' };
+    case 'proposed':
+      return { label: '제안됨', icon: '💡', bg: '#DBEAFE', fg: '#1E40AF' };
+    default:
+      return { label: '제안됨', icon: '💡', bg: '#DBEAFE', fg: '#1E40AF' };
   }
 }
 
@@ -1118,6 +1154,22 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.semibold,
     color: colors.textPrimary,
     marginBottom: 2,
+  },
+  scheduleTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: 4,
+  },
+  scheduleDecisionBadge: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+  },
+  scheduleDecisionText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
   },
   scheduleMeta: {
     fontSize: typography.size.sm,

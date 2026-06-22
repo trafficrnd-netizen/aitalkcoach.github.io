@@ -1187,6 +1187,21 @@ class HeuristicAnalyzer {
     else if (/(여행|출장|비행|공항|호텔|체크인)/.test(content)) type = 'travel';
     else if (isMeetup) type = 'meeting';
 
+    // [신규] 결정여부 — 메시지에서 일정 수락/거절/제안 신호 추출
+    // - confirmed: 확정, ㅇㅋ, 좋아, 할게, 진행, ~함
+    // - declined: 취소, 연기, 다음에, 안 돼
+    // - pending: 미정, 보류, 고민, 어떨까, ?
+    // - proposed: 질문/제안은 아니지만 명시적 확정 신호도 없음 (위 패턴 매칭 안 됨)
+    const confirmedRe = /(확정|확정됐|확정임|ㅇㅋ|ㅇㅇ|ㄱㄱ|좋아|좋아요|좋겠|할게|할께|하자|갑시다|받았|진행|예약|됐어|됐네|다행|ㅋㅋㅋㅋ)/;
+    const declinedRe = /(취소|취소해|연기|다음에|다음에 하|안 돼|안되|못하|패스|나갈게)/;
+    const pendingRe = /(미정|보류|고민|생각중|생각 중|어떨까|어떤게|어떡하|아마|~|\?$)/;
+    let decision = 'proposed';
+    if (declinedRe.test(content)) decision = 'declined';
+    else if (confirmedRe.test(content)) decision = 'confirmed';
+    else if (pendingRe.test(content)) decision = 'pending';
+    // 질문형(물음표)인데 확정 신호도 없으면 pending이 더 적절
+    if (decision === 'proposed' && /\?/.test(content)) decision = 'pending';
+
     // 제목
     let title = content;
     if (location) title = title.replace(location, '').replace(/에서|으로|로/g, '').trim();
@@ -1203,6 +1218,7 @@ class HeuristicAnalyzer {
       date: dateStr,
       dateObj,
       location,
+      decision,
       participants: msg.isFromMe ? [] : [msg.sender].filter(Boolean),
       quote: trimmed,
       from: msg.sender,
