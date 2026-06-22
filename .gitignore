@@ -41,3 +41,30 @@ example
 # generated native folders
 /ios
 /android
+
+# ===== local artifacts (sess build / debug / logs) =====
+# build logs
+build*.log
+npm_install.log
+metro*.log
+metro*.err
+logcat_monitor.log
+test_reanimated.cjs
+decode_sourcemap.cjs
+
+# screenshots / screen recordings
+screen_*.png
+
+# local dev reports
+AI*.html
+AI*.md
+Cash1_*.html
+Cash1_*.docx
+make_ops_manual.py
+make_report.py
+
+# backups
+*.bak
+
+# sample / scratch data
+sample_kakao.txt
