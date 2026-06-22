@@ -46,14 +46,21 @@ function extractMessages(rawText) {
     if (parsed && Array.isArray(parsed.messages) && parsed.messages.length > 0) {
       // [UNVERIFIED] parsed.messages의 필드(sender/content/timestamp)는
       //              kakaotalk-parser/parser.js 의 구조에 의존 — parser.js 확인 완료.
-      return parsed.messages.map((m, i) => ({
-        id: `p-${i}`,
-        sender: m.sender || (m.isFromMe ? '나' : '상대방'),
-        content: m.content || '',
-        timestamp: m.timestamp instanceof Date ? m.timestamp : null,
-        isFromMe: !!m.isFromMe,
-        raw: m.rawLine || m.content || '',
-      }));
+      // [FIX] sender에 "[]" 잔여물이 있어도 방어적으로 제거 (parser fix 보완)
+      return parsed.messages.map((m, i) => {
+        const cleanSender = (m.sender || (m.isFromMe ? '나' : '상대방'))
+          .replace(/^[\s\[\]]+/, '')
+          .replace(/[\s\[\]]+$/, '')
+          .trim() || (m.isFromMe ? '나' : '상대방');
+        return {
+          id: `p-${i}`,
+          sender: cleanSender,
+          content: m.content || '',
+          timestamp: m.timestamp instanceof Date ? m.timestamp : null,
+          isFromMe: !!m.isFromMe,
+          raw: m.rawLine || m.content || '',
+        };
+      });
     }
   } catch (e) {
     // [FAIL-FAST] 파서가 throw 해도 UI는 죽지 않게 fallback 으로 진행
@@ -68,25 +75,35 @@ function extractMessages(rawText) {
   // [FIX] 줄 단위 fallback 에서도 "[오후 3:30]" 같은 시간 prefix / [bracket] 정리
   //   클립보드에서 복사한 텍스트에 시간 prefix가 남아있는 경우
   //   (예: "[오후 3:30] 김철수 : 안녕?" → sender "[] 김철수" 가 되는 문제)
+  // 시간 prefix가 있으면 [시간] 으로 표시하기 위해 (timestampStr) 추출
+  const TIME_PREFIX_RE = /^\s*\[([^\]]*?(\d{1,2})[:시](\d{1,2})?(?:분)?[^\]]*?)\]\s*/;
   const cleanLine = (line) => {
     let s = line;
-    // 앞쪽 [오전/오후 H:MM] 또는 [HH:MM] 형식 제거
-    s = s.replace(/^\s*\[[^\]]*?(\d{1,2})[:시](\d{1,2})?분?[^\]]*?\]\s*/, '');
-    // 양 끝 [ ] 잔여물 제거
+    // 양 끝 [ ] 잔여물 제거 (sender 이름에 들어간 경우도 포함)
     s = s.replace(/^[\s\[\]]+/, '').replace(/[\s\[\]]+$/, '').trim();
     return s;
   };
 
   return lines.map((line, i) => {
+    if (!line || typeof line !== 'string') return null;
+
+    // [시간] prefix 추출
+    const tm = line.match(TIME_PREFIX_RE);
+    const timestampStr = tm ? tm[1].trim() : null;
+
+    // prefix 제거 후 sender:content 파싱
     const cleaned = cleanLine(line);
     if (!cleaned) return null;
     const match = cleaned.match(/^([^:]+?)\s*:\s*(.+)$/);
     if (match) {
+      const sender = match[1].trim();
+      // sender 자체에 시간 prefix가 또 박혀있으면 제거
+      const cleanSender = sender.replace(/^[\s\[\]]+/, '').replace(/[\s\[\]]+$/, '').trim();
       return {
         id: `l-${i}`,
-        sender: match[1].trim(),
+        sender: cleanSender,
         content: match[2].trim(),
-        timestamp: null,
+        timestamp: timestampStr,  // [오후 3:30] 형식
         isFromMe: false,
         raw: cleaned,
       };
@@ -95,7 +112,7 @@ function extractMessages(rawText) {
       id: `l-${i}`,
       sender: '메시지',
       content: cleaned,
-      timestamp: null,
+      timestamp: timestampStr,
       isFromMe: false,
       raw: cleaned,
     };
@@ -341,7 +358,14 @@ export default function SelectTextScreen() {
       >
         {messages.map((m) => {
           const isSelected = selected.has(m.id);
-          const time = formatTime(m.timestamp);
+          // Date 객체 (parser 경로) 또는 string "[오후 3:30]" (fallback 경로) 둘 다 처리
+          let timeDisplay = '';
+          if (m.timestamp instanceof Date) {
+            timeDisplay = formatTime(m.timestamp);
+          } else if (typeof m.timestamp === 'string' && m.timestamp.length > 0) {
+            // [오후 3:30] → 오후 3:30
+            timeDisplay = m.timestamp.replace(/[\[\]]/g, '').trim();
+          }
           return (
             <TouchableOpacity
               key={m.id}
@@ -371,8 +395,8 @@ export default function SelectTextScreen() {
                   {m.sender}
                   {m.isFromMe ? ' (나)' : ''}
                 </Text>
-                {time.length > 0 && (
-                  <Text style={styles.timeText}>{time}</Text>
+                {timeDisplay.length > 0 && (
+                  <Text style={styles.timeText}>[{timeDisplay}]</Text>
                 )}
               </View>
               <Text
