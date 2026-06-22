@@ -1,7 +1,11 @@
 /**
  * 사용법 화면
  *
- * 앱 사용 방법을 단계별로 안내
+ * 4가지 분석 진입 경로를 안내:
+ *  1) 파일 분석 (카톡 .txt 내보내기 → 업로드)
+ *  2) 자동 유입 (카톡 알림/접근성 → /select-text)
+ *  3) 말풍선 탭 (다른 앱에서 카톡 본문 → 빠른 조언)
+ *  4) 카톡방 텍스트 선택 (접근성 → 말풍선 펼침 → 감정/업무 선택)
  */
 
 import React, { useState } from 'react';
@@ -11,109 +15,121 @@ import {
   StyleSheet,
   ScrollView,
   Dimensions,
+  useWindowDimensions,
 } from 'react-native';
-import {
-  Button,
-  Card,
-  IconButton,
-  ProgressBar,
-} from 'react-native-paper';
+import { Button, Card, IconButton, ProgressBar } from 'react-native-paper';
+import { colors, spacing, radius, shadow, typography } from '../app/theme';
 
-const { width } = Dimensions.get('window');
+// 화면 사이즈 반응형 (5인치~7인치 모두 대응)
+function useResponsiveLayout() {
+  const { width, height } = useWindowDimensions();
+  const isTablet = Math.min(width, height) >= 600;
+  const contentMaxWidth = isTablet ? 560 : undefined;
+  const horizontalPad = isTablet ? spacing['3xl'] : spacing.lg;
+  return { width, height, isTablet, contentMaxWidth, horizontalPad };
+}
 
-const STEPS = [
+const METHODS = [
   {
-    id: 1,
-    emoji: '📱',
-    title: '카카오톡 대화 내보내기',
-    description:
-      '카카오톡에서 분석하고 싶은 대화방을 열고\n설정 → 대화 → 대화 내보내기를 선택하세요.',
-    detail:
-      '파일 형식은 "텍스트"로 선택해주세요.',
-    iconBg: '#EEF2FF',
+    id: 'file',
+    emoji: '📄',
+    title: '파일 분석',
+    subtitle: '긴 대화 / 전체 기록을 깊게 분석할 때',
+    color: colors.modeEmotion,
+    soft: colors.modeEmotionSoft,
+    steps: [
+      '카톡 → 대화방 → ⋮ 메뉴 → "대화 내보내기"',
+      '형식을 "텍스트(.txt)"로 선택해 저장',
+      'AI톡 코치 홈 → "파일 선택하기" → 저장한 .txt 선택',
+      '분석 모드(감정/업무) 선택 → "AI 분석 시작"',
+    ],
+    when: '대화 내용이 많거나, 보관해둔 대화를 한 번에 분석하고 싶을 때',
   },
   {
-    id: 2,
-    emoji: '📤',
-    title: '파일 선택하기',
-    description:
-      'AI톡 코치 앱에서 "파일 선택하기" 버튼을 탭하고,\n내보낸 텍스트 파일을 선택하세요.',
-    detail:
-      '파일이 제대로 선택되면 파일 이름과 크기가 표시됩니다.',
-    iconBg: '#F0FDF4',
+    id: 'auto',
+    emoji: '🔔',
+    title: '자동 유입',
+    subtitle: '카톡 알림이 오면 자동으로 분석 화면에 도착',
+    color: colors.modeEmotion,
+    soft: colors.modeEmotionSoft,
+    steps: [
+      '카톡 알림 접근성 권한 허용 (최초 1회)',
+      '상대방이 메시지를 보내면 알림 발생',
+      '알림에서 본문을 길게 누르거나 앱을 열면 자동 분석 대기',
+      '"/select-text" 화면에서 분석할 메시지 선택',
+      '감정/업무 모드 선택 → "AI 분석 시작"',
+    ],
+    when: '실시간으로 상대방 메시지가 도착했을 때, 가장 빠른 분석 경로',
   },
   {
-    id: 3,
-    emoji: '🤖',
-    title: 'AI 분석 시작',
-    description:
-      '"AI 분석 시작" 버튼을 탭하면\n대화가 AI에 의해 분석됩니다.',
-    detail:
-      '분석에는 수 초~수십 초가 소요됩니다.\n대화의 길이에 따라 시간이 달라집니다.',
-    iconBg: '#FEF3C7',
+    id: 'bubble',
+    emoji: '💬',
+    title: '말풍선 탭',
+    subtitle: '다른 앱 위 떠 있는 ? 말풍선을 눌러 즉석 조언',
+    color: colors.modeQuick,
+    soft: colors.modeQuickSoft,
+    steps: [
+      '설정에서 "다른 앱에서도 AI 분석 켜기" 권한 허용',
+      '카톡/메신저에서 받은 메시지를 길게 눌러 "복사"',
+      '화면 우측 하단의 ? 말풍선 탭',
+      '클립보드의 텍스트가 자동으로 채워짐',
+      '"한 줄 조언" 카드 + "전체 분석" 버튼 제공',
+    ],
+    when: '복잡한 분석 없이 한 줄 조언만 빠르게 받고 싶을 때',
   },
   {
-    id: 4,
-    emoji: '💡',
-    title: '결과 확인하기',
-    description:
-      '감정 분석, 관심도, 조언을 확인하고\n상황에 맞는 답장을 추천받아보세요.',
-    detail:
-      '📊 감정: 대화의 전체적인 분위기\n❤️ 관심도: 상대방의 관심 수준\n💬 답장: 상황별 추천 답장',
-    iconBg: '#FFF1F2',
-  },
-  {
-    id: 5,
-    emoji: '👑',
-    title: '프리미엄으로 업그레이드',
-    description:
-      '하루 3회 무료 분석 후,\n프리미엄으로 무제한 분석을 이용해보세요.',
-    detail:
-      '• 무제한 대화 분석\n• 상세 감정 분석\n• 맞춤 답장 추천\n• 대화 요약 기능',
-    iconBg: '#F5F3FF',
+    id: 'select',
+    emoji: '✂️',
+    title: '카톡방 텍스트 선택 (베타)',
+    subtitle: '카톡 채팅방에서 텍스트를 선택하면 말풍선이 펼쳐져요',
+    color: colors.modeWork,
+    soft: colors.modeWorkSoft,
+    steps: [
+      '카톡 채팅방에서 분석할 메시지를 길게 눌러 선택',
+      '화면에 "?" 말풍선이 펼쳐짐',
+      '말풍선 안에서 "감정분석" 또는 "업무분석" 선택',
+      '선택한 텍스트가 앱으로 전달되어 분석 시작',
+      '"채팅방으로" 버튼을 누르면 즉시 카톡으로 복귀',
+    ],
+    when: '카톡을 떠나지 않고 가볍게 분석하고 싶을 때',
   },
 ];
 
 const TIPS = [
+  { emoji: '💡', text: '분석은 100% 기기 내에서 이루어지며, 데이터가 외부로 전송되지 않습니다' },
+  { emoji: '🔒', text: '복사한 카톡 본문은 분석 직후 메모리에서 비워져요 (저장 X)' },
+  { emoji: '🎯', text: '업무 분석은 시간/장소/결정/액션 중심으로, 감정 분석은 톤/관심도 중심으로 정리해줘요' },
+  { emoji: '⚠️', text: '카톡 알림 권한을 끄면 자동 유입이 동작하지 않아요' },
+];
+
+const FAQS = [
   {
-    emoji: '✅',
-    text: '카카오톡 내보내기는Wifi 환경에서 하는 것을 추천합니다 (대화 길이에 따라 파일 크기가 클 수 있습니다)',
+    q: '어떤 카톡 파일을 지원하나요?',
+    a: '카톡 → 대화 내보내기 → 텍스트(.txt) 형식으로 저장한 파일을 지원합니다. 미디어는 텍스트로 추출되지 않아 분석에서 제외돼요.',
   },
   {
-    emoji: '✅',
-    text: '분석은 100% 기기 내에서 이루어지며, 데이터가 외부로 전송되지 않습니다',
+    q: '파일 분석과 클립보드 분석의 차이는?',
+    a: '파일 분석은 카톡에서 내보낸 전체 대화를 통째로 분석해서 감정/관심도/조언/답장 추천을 모두 받아볼 수 있어요. 클립보드/말풍선은 짧은 단문 위주로 즉석 조언에 초점을 둡니다.',
   },
   {
-    emoji: '✅',
-    text: '분석이 끝난 파일은 자동으로 삭제되지 않습니다. 설정에서 수동 삭제할 수 있습니다',
+    q: '대화가 외부로 전송되나요?',
+    a: '아니요. 모든 분석은 사용자 기기 안에서만 이루어지며, 데이터가 외부 서버로 전송되지 않습니다.',
   },
   {
-    emoji: '✅',
-    text: '대화가 길수록 분석 시간이 길어지고, 더 정확한 결과를 얻을 수 있습니다',
+    q: '감정분석과 업무분석은 어떻게 다른가요?',
+    a: '감정분석은 상대방의 감정/관심도/답장 추천에 초점, 업무분석은 내용요약/일정/액션아이템/리스크에 초점을 둡니다. 같은 대화를 두 모드로 모두 분석할 수 있어요.',
   },
   {
-    emoji: '⚠️',
-    text: '일상적인 친구 대화보다, 관심을 표현하려는 데이트 대화에서 더 정확한 분석이 가능합니다',
+    q: '구독은 어떻게 취소하나요?',
+    a: 'iOS는 설정 → Apple ID → 구독, Android는 Play 스토어 → 구독 관리에서 취소할 수 있습니다.',
   },
 ];
 
 function HowToScreen({ onBack, onNavigate }) {
-  const [currentStep, setCurrentStep] = useState(0);
+  const [step, setStep] = useState(0);
+  const { isTablet, contentMaxWidth, horizontalPad } = useResponsiveLayout();
 
-  const goNext = () => {
-    if (currentStep < STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const goPrev = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  const step = STEPS[currentStep];
-  const progress = (currentStep + 1) / STEPS.length;
+  const method = METHODS[step];
 
   return (
     <View style={styles.container}>
@@ -124,6 +140,7 @@ function HowToScreen({ onBack, onNavigate }) {
           mode="text"
           onPress={onBack}
           style={styles.backButton}
+          textColor={colors.textPrimary}
         >
           뒤로
         </Button>
@@ -132,97 +149,109 @@ function HowToScreen({ onBack, onNavigate }) {
       </View>
 
       {/* 프로그레스 */}
-      <View style={styles.progressContainer}>
+      <View style={[styles.progressContainer, { paddingHorizontal: horizontalPad }]}>
         <ProgressBar
-          progress={progress}
-          color="#6366F1"
+          progress={(step + 1) / METHODS.length}
+          color={method.color}
           style={styles.progressBar}
         />
         <Text style={styles.progressText}>
-          {currentStep + 1} / {STEPS.length}
+          {step + 1} / {METHODS.length}
         </Text>
       </View>
 
       <ScrollView
         style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingHorizontal: horizontalPad, paddingBottom: spacing['3xl'] },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* 단계 카드 */}
-        <Card style={styles.stepCard}>
-          <Card.Content style={styles.stepContent}>
-            <View
-              style={[
-                styles.iconContainer,
-                { backgroundColor: step.iconBg },
-              ]}
-            >
-              <Text style={styles.stepEmoji}>{step.emoji}</Text>
+        {/* 메인 안내 */}
+        <Card style={[styles.heroCard, contentMaxWidth ? { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' } : null]}>
+          <Card.Content style={styles.heroContent}>
+            <View style={[styles.iconContainer, { backgroundColor: method.soft }]}>
+              <Text style={styles.methodEmoji}>{method.emoji}</Text>
             </View>
-
-            <Text style={styles.stepNumber}>STEP {step.id}</Text>
-            <Text style={styles.stepTitle}>{step.title}</Text>
-            <Text style={styles.stepDescription}>{step.description}</Text>
-
-            {step.detail && (
-              <View style={styles.detailBox}>
-                <Text style={styles.detailText}>{step.detail}</Text>
-              </View>
-            )}
+            <Text style={[styles.methodLabel, { color: method.color }]}>
+              방법 {step + 1}
+            </Text>
+            <Text style={styles.methodTitle}>{method.title}</Text>
+            <Text style={styles.methodSubtitle}>{method.subtitle}</Text>
+            <View style={[styles.whenPill, { backgroundColor: method.soft }]}>
+              <Text style={[styles.whenText, { color: method.color }]}>
+                언제 쓰면 좋을까? · {method.when}
+              </Text>
+            </View>
           </Card.Content>
         </Card>
 
-        {/* 네비게이션 버튼 */}
-        <View style={styles.navigation}>
+        {/* 단계별 설명 */}
+        <Card style={[styles.stepsCard, contentMaxWidth ? { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' } : null]}>
+          <Card.Content>
+            <Text style={styles.stepsTitle}>진행 순서</Text>
+            {method.steps.map((s, i) => (
+              <View key={i} style={styles.stepRow}>
+                <View style={[styles.stepNumber, { backgroundColor: method.color }]}>
+                  <Text style={styles.stepNumberText}>{i + 1}</Text>
+                </View>
+                <Text style={styles.stepText}>{s}</Text>
+              </View>
+            ))}
+          </Card.Content>
+        </Card>
+
+        {/* 네비게이션 */}
+        <View style={[styles.navigation, contentMaxWidth ? { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' } : null]}>
           <Button
             mode="outlined"
-            onPress={goPrev}
-            disabled={currentStep === 0}
+            onPress={() => setStep(Math.max(0, step - 1))}
+            disabled={step === 0}
             style={styles.navButton}
+            textColor={colors.textSecondary}
           >
-            이전
+            ← 이전
           </Button>
 
-          {currentStep < STEPS.length - 1 ? (
+          {step < METHODS.length - 1 ? (
             <Button
               mode="contained"
-              onPress={goNext}
+              onPress={() => setStep(Math.min(METHODS.length - 1, step + 1))}
               style={styles.navButton}
+              buttonColor={method.color}
             >
-              다음
+              다음 방법 →
             </Button>
           ) : (
             <Button
               mode="contained"
-              onPress={() => {
-                onBack();
-                onNavigate('subscription');
-              }}
-              style={[styles.navButton, styles.upgradeButton]}
-              buttonColor="#6366F1"
+              onPress={() => onNavigate('subscription')}
+              style={styles.navButton}
+              buttonColor={colors.accent}
             >
-              프리미엄 체험하기
+              프리미엄 보기
             </Button>
           )}
         </View>
 
         {/* 점 인디케이터 */}
         <View style={styles.dots}>
-          {STEPS.map((_, index) => (
+          {METHODS.map((m, index) => (
             <View
               key={index}
               style={[
                 styles.dot,
-                index === currentStep && styles.dotActive,
+                index === step && { backgroundColor: m.color, width: 24 },
               ]}
             />
           ))}
         </View>
 
-        {/* 팁 섹션 */}
-        <Card style={styles.tipsCard}>
+        {/* 팁 */}
+        <Card style={[styles.tipsCard, contentMaxWidth ? { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' } : null]}>
           <Card.Content>
-            <Text style={styles.tipsTitle}>💡 팁</Text>
+            <Text style={styles.tipsTitle}>💡 알아두면 좋아요</Text>
             {TIPS.map((tip, index) => (
               <View key={index} style={styles.tipItem}>
                 <Text style={styles.tipEmoji}>{tip.emoji}</Text>
@@ -233,30 +262,12 @@ function HowToScreen({ onBack, onNavigate }) {
         </Card>
 
         {/* FAQ */}
-        <Card style={styles.faqCard}>
+        <Card style={[styles.faqCard, contentMaxWidth ? { maxWidth: contentMaxWidth, alignSelf: 'center', width: '100%' } : null]}>
           <Card.Content>
             <Text style={styles.faqTitle}>❓ 자주 묻는 질문</Text>
-
-            <FaqItem
-              question="어떤 카카오톡 파일을 지원하나요?"
-              answer="카카오톡 내보내기 → 파일 형식 '텍스트'로 저장한 .txt 파일을 지원합니다."
-            />
-            <FaqItem
-              question="대화가 외부로 전송되나요?"
-              answer="아니요. 모든 분석은 사용자 기기 내에서만 이루어지며, 데이터가 외부로 전송되지 않습니다."
-            />
-            <FaqItem
-              question="어떤 언어를 지원하나요?"
-              answer="현재 한국어 대화에 최적화되어 있습니다. 다른 언어의 분석은 지원하지 않습니다."
-            />
-            <FaqItem
-              question="분석 횟수가 제한되어 있나요?"
-              answer="무료 사용자는 하루 3회 분석이 가능합니다. 프리미엄 구독 시 무제한으로 분석할 수 있습니다."
-            />
-            <FaqItem
-              question="구독은 어떻게 취소하나요?"
-              answer="iOS는 설정 → Apple ID → 구독, Android는 Play 스토어 → 구독 관리에서 취소할 수 있습니다."
-            />
+            {FAQS.map((f, i) => (
+              <FaqItem key={i} question={f.q} answer={f.a} />
+            ))}
           </Card.Content>
         </Card>
       </ScrollView>
@@ -266,7 +277,6 @@ function HowToScreen({ onBack, onNavigate }) {
 
 function FaqItem({ question, answer }) {
   const [expanded, setExpanded] = useState(false);
-
   return (
     <View style={styles.faqItem}>
       <Button
@@ -290,36 +300,37 @@ function FaqItem({ question, answer }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: colors.bg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 4,
+    paddingTop: 44,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   backButton: {
     margin: 0,
   },
   headerTitle: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   headerSpacer: {
     width: 64,
   },
+
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
   },
   progressBar: {
     flex: 1,
@@ -327,25 +338,28 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   progressText: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginLeft: 12,
-    fontWeight: '600',
+    fontSize: typography.size.xs,
+    color: colors.textMuted,
+    marginLeft: spacing.md,
+    fontWeight: typography.weight.semibold,
   },
+
   content: {
     flex: 1,
   },
   contentContainer: {
-    padding: 16,
-    paddingBottom: 32,
+    paddingTop: spacing.lg,
   },
-  stepCard: {
-    borderRadius: 20,
-    marginBottom: 16,
+
+  heroCard: {
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.lg,
+    ...shadow.soft,
   },
-  stepContent: {
+  heroContent: {
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: spacing.xl,
   },
   iconContainer: {
     width: 80,
@@ -353,131 +367,167 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
-  stepEmoji: {
+  methodEmoji: {
     fontSize: 40,
   },
-  stepNumber: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6366F1',
-    letterSpacing: 1,
+  methodLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
     marginBottom: 4,
   },
-  stepTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#111827',
+  methodTitle: {
+    fontSize: typography.size.xl,
+    fontWeight: typography.weight.bold,
+    color: colors.textPrimary,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.xs,
   },
-  stepDescription: {
-    fontSize: 15,
-    color: '#6B7280',
+  methodSubtitle: {
+    fontSize: typography.size.base,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 16,
+    lineHeight: typography.lineHeight.relaxed * typography.size.base,
+    marginBottom: spacing.md,
   },
-  detailBox: {
-    backgroundColor: '#F9FAFB',
+  whenPill: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    alignSelf: 'stretch',
+  },
+  whenText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    textAlign: 'center',
+    lineHeight: typography.lineHeight.relaxed * typography.size.sm,
+  },
+
+  stepsCard: {
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.lg,
+    ...shadow.soft,
+  },
+  stepsTitle: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
     borderRadius: 12,
-    padding: 12,
-    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.md,
+    marginTop: 2,
   },
-  detailText: {
-    fontSize: 13,
-    color: '#374151',
-    lineHeight: 20,
+  stepNumberText: {
+    color: colors.textInverse,
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
   },
+  stepText: {
+    flex: 1,
+    fontSize: typography.size.base,
+    color: colors.textPrimary,
+    lineHeight: typography.lineHeight.relaxed * typography.size.base,
+  },
+
   navigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
   navButton: {
     flex: 1,
-    marginHorizontal: 4,
-    borderRadius: 12,
+    borderRadius: radius.md,
   },
-  upgradeButton: {
-    backgroundColor: '#6366F1',
-  },
+
   dots: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.surfaceMuted,
     marginHorizontal: 4,
   },
-  dotActive: {
-    backgroundColor: '#6366F1',
-    width: 24,
-  },
+
   tipsCard: {
-    borderRadius: 16,
-    marginBottom: 16,
-    backgroundColor: '#F0FDF4',
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceMuted,
+    marginBottom: spacing.lg,
+    ...shadow.none,
   },
   tipsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#166534',
-    marginBottom: 12,
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.md,
   },
   tipItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   tipEmoji: {
-    fontSize: 14,
-    marginRight: 8,
-    marginTop: 2,
+    fontSize: typography.size.base,
+    marginRight: spacing.sm,
   },
   tipText: {
-    fontSize: 13,
-    color: '#15803D',
-    flex: 1,
-    lineHeight: 20,
+    flexSize: 1,
+    fontSize: typography.size.sm,
+    color: colors.textPrimary,
+    lineHeight: typography.lineHeight.relaxed * typography.size.sm,
   },
+
   faqCard: {
-    borderRadius: 16,
-    marginBottom: 16,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.lg,
+    ...shadow.soft,
   },
   faqTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
   },
   faqItem: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: colors.border,
   },
   faqButtonContent: {
     justifyContent: 'flex-start',
   },
   faqButtonLabel: {
-    fontSize: 14,
-    color: '#374151',
+    fontSize: typography.size.base,
+    color: colors.textPrimary,
     textAlign: 'left',
   },
   faqAnswer: {
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
   },
   faqAnswerText: {
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 20,
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+    lineHeight: typography.lineHeight.relaxed * typography.size.sm,
   },
 });
 

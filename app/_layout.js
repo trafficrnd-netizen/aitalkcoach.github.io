@@ -58,15 +58,18 @@ export default function RootLayout() {
   // /select-text 에서 사용자가 어떤 메시지를 분석할지 고를 수 있게 한다.
   // (file upload 플로우는 HomeScreen.handleStartAnalysis 에서 직접 /analysis 로
   //  라우팅하므로 본 함수의 영향을 받지 않음.)
+  //
+  // options.bubbleMode 가 있으면 ('emotion' | 'work') 그 모드로 store 미리 세팅.
+  //   - 채팅방에서 텍스트 선택 → 말풍선 펼침 → 감정/업무 탭 시 사용됨
   const lastAutoAnalyzeRef = useRef(0);
-  const handleIncomingText = (text, source = 'kakao-notif', sender = null) => {
+  const handleIncomingText = (text, source = 'kakao-notif', sender = null, mode = null) => {
     if (!text || text.trim().length < 5) return;
     // 3초 cooldown (같은 텍스트가 짧은 시간에 여러 번 들어와도 1회만)
     if (Date.now() - lastAutoAnalyzeRef.current < 3000) return;
     lastAutoAnalyzeRef.current = Date.now();
 
     // [FAIL-FAST] store에 저장 먼저 → select-text 화면이 안전하게 읽을 수 있게
-    setCurrentAnalysis(text, source, sender);
+    setCurrentAnalysis(text, source, sender, mode);
 
     // 선택 화면으로 이동. select-text 가 사용자 선택을 끝낸 뒤 store 텍스트를
     // 갈아끼우고 /analysis 로 replace 한다.
@@ -114,8 +117,24 @@ export default function RootLayout() {
   // 3) in-memory static 변수를 RN bridge polling (가장 안정적 fallback)
   useEffect(() => {
     // (1) KakaoIncomingText — MainActivity intent handler 가 emit
+    //   data.bubbleMode 가 있으면 ('emotion' | 'work') 그 모드로 즉시 분석 화면으로
     const sub1 = DeviceEventEmitter.addListener('KakaoIncomingText', (data) => {
-      handleIncomingText(data?.text, data?.source || 'kakao-notif', data?.sender || null);
+      const bubbleMode = data?.bubbleMode || null;
+      if (bubbleMode === 'emotion' || bubbleMode === 'work') {
+        // [SPECIAL] 버블에서 모드 지정 → 분석 모드 미리 세팅 후 /select-text
+        handleIncomingText(
+          data?.text,
+          'kakao-select',
+          data?.sender || null,
+          bubbleMode,
+        );
+      } else {
+        handleIncomingText(
+          data?.text,
+          data?.source || 'kakao-notif',
+          data?.sender || null,
+        );
+      }
     });
 
     // (2) KakaoNotificationReceived — 구 arch interop (혹시 모를 경로)
@@ -152,6 +171,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="select-text" />
           <Stack.Screen name="analysis" />
+          <Stack.Screen name="quick-advice" />
           <Stack.Screen name="subscription" />
           <Stack.Screen name="settings" />
           <Stack.Screen name="howto" />
@@ -162,7 +182,28 @@ export default function RootLayout() {
           />
         </Stack>
         <FloatingBubble
-          onAnalyze={() => console.log('[FloatingBubble] tapped - analyzing clipboard')}
+          onAnalyze={() => {
+            // 클립보드에서 텍스트를 읽어 store 에 저장 후 quick-advice 로 이동.
+            // store.currentAnalysisText 가 이미 있으면 그걸 우선 사용.
+            (async () => {
+              try {
+                const Clipboard = require('expo-clipboard');
+                let text = null;
+                if (Clipboard?.hasStringAsync && (await Clipboard.hasStringAsync())) {
+                  text = await Clipboard.getStringAsync();
+                }
+                const store = require('../store/appStore').useAppStore.getState();
+                if (!text && store.currentAnalysisText) text = store.currentAnalysisText;
+                if (text && text.trim().length > 0) {
+                  store.setCurrentAnalysis(text, 'bubble', null, 'quick');
+                }
+                router.push('/quick-advice');
+              } catch (e) {
+                console.warn('[FloatingBubble] navigate error:', e?.message);
+                router.push('/quick-advice');
+              }
+            })();
+          }}
         />
       </PaperProvider>
     </GestureHandlerRootView>

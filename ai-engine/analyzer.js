@@ -6,6 +6,7 @@
 
 import { parseJSONResponse, validateAnalysisResponse, buildFullAnalysisPrompts } from './prompts.js';
 import { searchKnowledge } from './rag.js';
+import HeuristicAnalyzer from './heuristic.js';
 
 /**
  * AI 모델 설정
@@ -238,6 +239,9 @@ class ConversationAnalyzer {
   constructor(options = {}) {
     this.ai = options.ai || new OnDeviceAI();
     this.useRAG = options.useRAG !== false;
+    // 휴리스틱 모드: ai가 HeuristicAnalyzer면 useHeuristic=true.
+    // LLM/OpenAI 사용 시 명시적으로 useHeuristic=false 옵션 전달.
+    this.useHeuristic = options.useHeuristic !== false && this.ai instanceof HeuristicAnalyzer;
     this.conversation = '';
   }
 
@@ -246,6 +250,10 @@ class ConversationAnalyzer {
    */
   setConversation(conversation) {
     this.conversation = conversation;
+    // 휴리스틱 분석기는 자체적으로 메시지 파싱을 수행하므로 위임
+    if (this.useHeuristic && typeof this.ai.setConversation === 'function') {
+      this.ai.setConversation(conversation);
+    }
   }
 
   /**
@@ -262,6 +270,17 @@ class ConversationAnalyzer {
       useRAG = true,
     } = options;
 
+    // 휴리스틱 모드: HeuristicAnalyzer에 직접 위임 (실제 메시지 분석 + 메시지별 코멘트)
+    if (this.useHeuristic) {
+      try {
+        const heuristicResult = await this.ai.analyze({ types });
+        return heuristicResult;
+      } catch (e) {
+        console.warn('[ConversationAnalyzer] heuristic 분석 실패, fallback:', e?.message);
+        // 실패해도 아래 LLM fallback으로 계속 진행
+      }
+    }
+
     const results = {};
     const prompts = buildFullAnalysisPrompts(this.conversation);
 
@@ -275,29 +294,36 @@ class ConversationAnalyzer {
       }
     }
 
-    // 각 분석 타입별 실행
-    for (const type of types) {
-      try {
-        let prompt;
-        switch (type) {
-          case ANALYSIS_TYPES.EMOTION:
-            prompt = prompts.emotion;
-            break;
-          case ANALYSIS_TYPES.INTEREST:
-            prompt = prompts.interest;
-            break;
-          case ANALYSIS_TYPES.ADVICE:
-            prompt = prompts.advice;
-            break;
-          case ANALYSIS_TYPES.REPLIES:
-            prompt = prompts.replies;
-            break;
-          case ANALYSIS_TYPES.COMPREHENSIVE:
-            prompt = prompts.comprehensive;
-            break;
-          default:
-            continue;
-        }
+        // 각 분석 타입별 실행
+        for (const type of types) {
+          try {
+            let prompt;
+            switch (type) {
+              case ANALYSIS_TYPES.EMOTION:
+                prompt = prompts.emotion;
+                break;
+              case ANALYSIS_TYPES.INTEREST:
+                prompt = prompts.interest;
+                break;
+              case ANALYSIS_TYPES.ADVICE:
+                prompt = prompts.advice;
+                break;
+              case ANALYSIS_TYPES.REPLIES:
+                prompt = prompts.replies;
+                break;
+              case ANALYSIS_TYPES.COMPREHENSIVE:
+                prompt = prompts.comprehensive;
+                break;
+              // [ASSUMPTION] 업무분석/빠른 조언은 휴리스틱 경로에서 처리됨.
+              //              LLM 경로로 들어올 일 없으므로 default: continue 로 폴백.
+              case 'work_summary':
+              case 'work_integrated':
+              case 'work_actions':
+              case 'quick_advice':
+                continue;
+              default:
+                continue;
+            }
 
         // RAG 컨텍스트 추가
         const fullPrompt = prompt + context;
@@ -370,20 +396,30 @@ class ConversationAnalyzer {
 
 /**
  * 분석기 팩토리
+ *
+ * 기본: HeuristicAnalyzer (메시지 기반 휴리스틱 분석 — 즉시 동작, API 키 불필요).
+ *      진짜 LLM 호출이 필요하면 옵션으로 useHeuristic=false, useLLM=true, apiKey=... 전달.
  */
 function createAnalyzer(options = {}) {
-  const { useOnDevice = true, apiKey = null } = options;
+  const {
+    useOnDevice = true,   // 하위 호환
+    useHeuristic = true,  // 휴리스틱 분석기 사용 (기본)
+    useLLM = false,       // 명시적 LLM 사용
+    apiKey = null,
+  } = options;
 
   let ai;
-  if (useOnDevice) {
-    ai = new OnDeviceAI();
-  } else if (apiKey) {
+  if (useLLM && apiKey) {
     ai = new ChatGPTInterface(apiKey);
-  } else {
+  } else if (!useHeuristic && useOnDevice) {
+    // 명시적으로 휴리스틱 끄고 온디바이스 LLM 요청 → 아직 실제 모델 없으므로 OnDeviceAI dummy
     ai = new OnDeviceAI();
+  } else {
+    // 기본: 휴리스틱 (실제 메시지 분석)
+    ai = new HeuristicAnalyzer();
   }
 
-  return new ConversationAnalyzer({ ai });
+  return new ConversationAnalyzer({ ai, useHeuristic });
 }
 
 // ===== 모듈 내보내기 =====
@@ -402,7 +438,12 @@ export {
 };
 
 // ===== 테스트 코드 =====
-const isMainModule = import.meta.url === `file://${process.argv[1]}`;
+// RN Metro 환경 호환: import.meta / process.argv 둘 다 안전하게 처리
+const isMainModule = typeof process !== 'undefined' &&
+                      typeof process.argv !== 'undefined' &&
+                      process.argv[1] != null &&
+                      (process.argv[1].endsWith('analyzer.js') ||
+                       process.argv[1].endsWith('analyzer'));
 if (isMainModule) {
   (async () => {
     console.log('=== AI Engine Test ===\n');

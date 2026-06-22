@@ -27,6 +27,8 @@ import { Card, Button, IconButton, Chip, Divider } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { parseKakaoTalkFile } from '../kakaotalk-parser/parser';
 import { useAppStore } from '../store/appStore';
+import ModeSelector from '../components/ModeSelector';
+import { colors, spacing, radius, shadow, typography, analysisMode } from '../app/theme';
 
 /**
  * 텍스트에서 분석 대상이 될 메시지 단위 배열로 변환.
@@ -105,7 +107,9 @@ export default function SelectTextScreen() {
   const currentText = useAppStore((s) => s.currentAnalysisText);
   const currentSource = useAppStore((s) => s.currentAnalysisSource);
   const currentSender = useAppStore((s) => s.currentAnalysisSender);
+  const currentMode = useAppStore((s) => s.currentAnalysisMode);
   const setCurrentAnalysis = useAppStore((s) => s.setCurrentAnalysis);
+  const setAnalysisMode = useAppStore((s) => s.setAnalysisMode);
 
   // [FAIL-FAST] 텍스트가 없으면 곧바로 알림 + 홈으로. 분석 자체가 불가.
   const hasText = typeof currentText === 'string' && currentText.trim().length > 0;
@@ -176,8 +180,13 @@ export default function SelectTextScreen() {
       return;
     }
 
-    // store 갱신: source/sender는 유지, 텍스트만 선택된 부분으로 교체
-    setCurrentAnalysis(text, currentSource || 'kakao-notif', currentSender || null);
+    // store 갱신: 텍스트/소스/발신자 + 현재 선택된 분석 모드
+    setCurrentAnalysis(
+      text,
+      currentSource || 'kakao-notif',
+      currentSender || null,
+      currentMode,
+    );
     router.replace('/analysis');
   }, [
     noneSelected,
@@ -185,8 +194,18 @@ export default function SelectTextScreen() {
     setCurrentAnalysis,
     currentSource,
     currentSender,
+    currentMode,
     router,
   ]);
+
+  const handleModeChange = useCallback(
+    (nextMode) => {
+      if (nextMode && nextMode !== currentMode) {
+        setAnalysisMode(nextMode);
+      }
+    },
+    [currentMode, setAnalysisMode],
+  );
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) {
@@ -261,6 +280,16 @@ export default function SelectTextScreen() {
             {currentSender}
           </Chip>
         )}
+      </View>
+
+      {/* ===== 분석 모드 선택 ===== */}
+      <View style={styles.modeRow}>
+        <ModeSelector
+          value={currentMode}
+          onChange={handleModeChange}
+          options={['emotion', 'work']}
+          compact
+        />
       </View>
 
       {/* ===== 빠른 액션 바 ===== */}
