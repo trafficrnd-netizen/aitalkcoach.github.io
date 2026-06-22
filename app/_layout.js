@@ -106,7 +106,15 @@ export default function RootLayout() {
     const initApp = async () => {
       await initRevenueCat();
       const subscription = await loadSubscription();
-      setSubscription(subscription);
+      // 기존 dailyUses/lastUsedDate 보존 (FREE_TIER엔 이 필드들이 없음)
+      const prev = useAppStore.getState().subscription;
+      setSubscription({
+        isPremium: subscription.isPremium,
+        tier: subscription.tier,
+        expiresAt: subscription.expiresAt,
+        dailyUses: prev?.dailyUses ?? 0,
+        lastUsedDate: prev?.lastUsedDate ?? null,
+      });
     };
     initApp();
   }, []);
